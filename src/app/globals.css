@@ -2,25 +2,79 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111827;
+  /* Primary palette */
+  --primary: #F48B75; /* requested */
+  --primary-foreground: #ffffff;
+  /* Accent that blends well with warm primary (teal) */
+  --accent: #2E6F70;
+  --accent-foreground: #ffffff;
+  /* Muted surfaces and borders */
+  --muted: #f6f6f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0f14;
+    --foreground: #e5e7eb;
+    --primary: #f79b87;
+    --primary-foreground: #0a0a0a;
+    --accent: #2B5F60;
+    --accent-foreground: #e5e7eb;
+    --muted: #0f141a;
+    --muted-foreground: #9ca3af;
+    --border: #1f2937;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
+
+/* Headings use Playfair Display */
+h1, h2, h3, h4 {
+  font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+/* Utility helpers for new palette where useful */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-outline {
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  background-color: transparent;
+}
+
+/* Unified focus rings across the site */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.focus-border-primary:focus-visible {
+  border-color: var(--color-primary);
+}
+
+/* Nav link/icon hover styles using primary color */
+a.nav-link:hover { color: var(--color-primary); }
+a.icon-link:hover { color: var(--color-primary); }
