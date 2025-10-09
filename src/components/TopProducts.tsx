@@ -112,9 +112,11 @@ export default function TopProducts() {
 
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <h2 className="font-semibold text-4xl text-gray-700 mb-2">Trending Products</h2>
-        <p className="text-gray-500 mb-8">Discover our most loved items this season</p>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12">
+        <div className="px-2 sm:px-0">
+          <h2 className="font-semibold text-2xl sm:text-4xl text-gray-700 mb-1 sm:mb-2">Trending Products</h2>
+          <p className="text-sm sm:text-base text-gray-500 mb-6 sm:mb-8">Discover our most loved items this season</p>
+        </div>
         
         <div 
           className="relative overflow-hidden"
@@ -125,9 +127,9 @@ export default function TopProducts() {
             {visiblePromos.map((p) => (
               <div key={p.id} className={`${p.bg} rounded-2xl overflow-hidden hover:shadow-md transition-shadow`}>
                 <div className="relative grid grid-cols-1 md:grid-cols-2 items-center h-full">
-                  <div className="p-8 md:p-10">
-                    <h3 className="text-2xl font-semibold text-gray-800">{p.title}</h3>
-                    <p className="text-gray-500 mt-2">{p.subtitle}</p>
+                  <div className="p-5 sm:p-8 md:p-10 order-2 md:order-1">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-800">{p.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-500 mt-1 sm:mt-2">{p.subtitle}</p>
                     <Link 
                       href={p.href} 
                       className="mt-6 inline-flex items-center text-[var(--color-primary)] font-medium group"
@@ -138,12 +140,12 @@ export default function TopProducts() {
                       </svg>
                     </Link>
                   </div>
-                  <div className="relative h-64 md:h-80">
+                  <div className="relative h-48 sm:h-64 md:h-80 order-1 md:order-2">
                     <Image
                       src={p.image}
                       alt={p.title}
                       fill
-                      className="object-cover md:object-contain p-6 md:p-10"
+                      className="object-contain p-4 sm:p-6 md:p-10"
                       sizes="(max-width: 768px) 100vw, 50vw"
                       priority
                     />
@@ -154,15 +156,15 @@ export default function TopProducts() {
           </div>
 
           {/* Navigation dots */}
-          <div className="flex justify-center mt-8 space-x-2">
+          <div className="flex justify-center mt-6 sm:mt-8 space-x-1 sm:space-x-2">
             {Array.from({ length: totalSlides }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`w-1 h-1 rounded-full transition-colors cursor-pointer ${
+                className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
                   index === currentSlide 
-                    ? 'bg-[var(--color-primary)] w-8' 
-                    : 'bg-gray-300 hover:bg-gray-400'
+                    ? 'bg-[var(--color-primary)] w-6 sm:w-8' 
+                    : 'w-2 sm:w-3 bg-gray-300 hover:bg-gray-400'
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
