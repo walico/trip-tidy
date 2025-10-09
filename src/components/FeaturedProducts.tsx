@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useCart } from '@/contexts/CartContext';
 
 const products = [
   { id: 'p1', title: 'Carry-On Luggage', price: '$180', originalPrice: '$220', rating: 4.5, img: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1200&auto=format&fit=crop' },
@@ -31,6 +32,19 @@ export default function FeaturedProducts() {
 
 function ProductCard({ product }: { product: { id: string; title: string; price: string; originalPrice: string; rating: number; img: string } }) {
   const [isHovered, setIsHovered] = useState(false);
+  const { addToCart } = useCart();
+  
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation
+    e.stopPropagation(); // Stop event bubbling
+    
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      img: product.img
+    });
+  };
 
   const StarRating = ({ rating }: { rating: number }) => {
     return (
@@ -70,7 +84,10 @@ function ProductCard({ product }: { product: { id: string; title: string; price:
           <div className={`absolute bottom-0 left-0 right-0 bg-white transform transition-transform duration-300 ${
             isHovered ? 'translate-y-0' : 'translate-y-full'
           }`}>
-            <button className="w-full py-3 px-4 bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary)]/90 transition-colors">
+            <button 
+              onClick={handleAddToCart}
+              className="w-full py-3 px-4 bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary)]/90 transition-colors"
+            >
               Add to Cart
             </button>
           </div>

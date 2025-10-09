@@ -4,7 +4,7 @@
   --background: #ffffff;
   --foreground: #111827;
   /* Primary palette */
-  --primary: #F48B75; /* requested */
+  --primary: #be7960cc; /* requested */
   --primary-foreground: #ffffff;
   /* Accent that blends well with warm primary (teal) */
   --accent: #2E6F70;
@@ -33,7 +33,7 @@
   :root {
     --background: #0b0f14;
     --foreground: #e5e7eb;
-    --primary: #f79b87;
+    --primary: #be7960cc;
     --primary-foreground: #0a0a0a;
     --accent: #2B5F60;
     --accent-foreground: #e5e7eb;
