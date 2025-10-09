@@ -18,8 +18,8 @@ export default function Home() {
       <Info />
       <CollectionCategories />
       <FeaturedProducts />
-      <Banner />
       <TopProducts />
+      <Banner />
       <Newsletter />
       <Footer />
     </main>

@@ -17,7 +17,7 @@ export default function FeaturedProducts() {
     <section className="bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-end justify-between">
-          <h2 className="text-2xl font-semibold text-gray-600">Featured Products</h2>
+          <h2 className="font-semibold text-4xl text-gray-700">Featured Products</h2>
           <Link href="/products" className="text-sm text-gray-600 hover:underline">View all</Link>
         </div>
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -65,7 +65,7 @@ function ProductCard({ product }: { product: { id: string; title: string; price:
 
   return (
     <div
-      className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+      className="group relative bg-white rounded-lg overflow-hidden border hover:shadow-md transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -80,15 +80,33 @@ function ProductCard({ product }: { product: { id: string; title: string; price:
           {/* Overlay that appears on hover */}
           <div className={`absolute inset-0 bg-black/20 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
 
-          {/* Add to Cart button - slides up on hover */}
-          <div className={`absolute bottom-0 left-0 right-0 bg-white transform transition-transform duration-300 ${
+          {/* Action buttons - slides up on hover */}
+          <div className={`absolute bottom-0 left-2 right-2 bg-white/95 transform transition-all duration-300 flex ${
             isHovered ? 'translate-y-0' : 'translate-y-full'
           }`}>
             <button 
               onClick={handleAddToCart}
-              className="w-full py-3 px-4 bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary)]/90 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary)]/90 transition-colors cursor-pointer"
             >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+              </svg>
               Add to Cart
+            </button>
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Add to wishlist logic here
+              }}
+              className="p-3 text-gray-600 hover:text-rose-500 transition-colors cursor-pointer"
+              aria-label="Add to wishlist"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 22l7.8-8.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/>
+              </svg>
             </button>
           </div>
         </div>

@@ -15,25 +15,21 @@
   --border: #e5e7eb;
 }
 
-@theme inline {
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0b0f14;
     --foreground: #e5e7eb;
-    --primary: #be7960cc;
     --primary-foreground: #0a0a0a;
     --accent: #2B5F60;
     --accent-foreground: #e5e7eb;

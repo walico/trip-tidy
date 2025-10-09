@@ -15,14 +15,17 @@ export default function Info() {
   ];
 
   return (
-    <section className="bg-white">
+    <section className="bg-gray-100 py-12">
+       <div className="max-w-7xl mx-auto text-center text-xs text-gray-800 font-thin uppercase leading-light">Shop smarter. Live tidier. Feel better.</div>
+       <div className="max-w-2xl mx-auto text-center text-4xl text-gray-700 font-medium leading-tight" style={{ fontFamily: 'Playfair Display, serif' }}>Discover home and lifestyle essentials designed to simplify your routine and bring joy to the little things.</div>
       <div className="mx-auto max-w-5xl px-4 py-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+     
         {items.map((it) => (
           <div key={it.title} className="flex justify-center flex-col items-center gap-3">
             <div className="text-[var(--color-primary)] text-lg">{it.icon}</div>
             <div>
-              <div className="font-medium text-gray-600">{it.title}</div>
-              <div className="text-gray-400 text-sm">{it.desc}</div>
+              <div className="font-medium text-gray-700">{it.title}</div>
+              <div className="text-gray-500 text-sm">{it.desc}</div>
             </div>
           </div>
         ))}
