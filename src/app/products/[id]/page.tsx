@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Star, Truck, Shield, ChevronLeft, Check, ChevronRight, ChevronLeft as ChevronLeftIcon, Heart } from 'lucide-react';
 import Footer from '@/components/Footer';
@@ -10,6 +11,7 @@ import TopProducts from '@/components/TopProducts';
 
 // Create a client component that handles the product display
 function ProductDetailContent({ id }: { id: string }) {
+  const { addToCart } = useCart();
   // Product data - in a real app, this would come from an API
   const product = {
     id,
@@ -226,7 +228,17 @@ function ProductDetailContent({ id }: { id: string }) {
               </div>
               
              <div className="flex">
-               <Button className="rounded-r-none border-r-0 py-2 text-base font-medium bg-[#1a1a1a] text-white hover:bg-[#333] transition-colors cursor-pointer">
+               <Button 
+                 onClick={() => {
+                   addToCart({
+                     id: product.id,
+                     title: product.title,
+                     price: product.price.toString(),
+                     img: product.images[0]
+                   });
+                 }}
+                 className="rounded-r-none border-r-0 py-2 text-base font-medium bg-[#1a1a1a] text-white hover:bg-[#333] transition-colors cursor-pointer"
+               >
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
                    <circle cx="9" cy="21" r="1"/>
                    <circle cx="20" cy="21" r="1"/>

@@ -21,7 +21,7 @@ const promos: Promo[] = [
     subtitle: 'Luxury meets comfort in every curve',
     cta: 'SHOP NOW',
     href: '/products',
-    image: 'https://images.unsplash.com/photo-1582582621995-f3d7ed1c2b7a?q=80&w=1200&auto=format&fit=crop',
+    image: '/images/backpack.png',
     bg: 'bg-[#FFF2EA]',
   },
   {
@@ -30,7 +30,7 @@ const promos: Promo[] = [
     subtitle: 'Perfect blend of style and comfort',
     cta: 'SHOP NOW',
     href: '/products',
-    image: 'https://images.unsplash.com/photo-1549187774-b4e9b0445b41?q=80&w=1200&auto=format&fit=crop',
+    image: '/images/backpack.png',
     bg: 'bg-[#EAF2F5]',
   },
   {
@@ -39,7 +39,7 @@ const promos: Promo[] = [
     subtitle: 'Sleek design for productive spaces',
     cta: 'SHOP NOW',
     href: '/products',
-    image: 'https://images.unsplash.com/photo-1518455020089-535e66aaeffe?q=80&w=1200&auto=format&fit=crop',
+    image: '/images/backpack.png',
     bg: 'bg-[#F0F7EE]',
   },
   {
@@ -48,7 +48,7 @@ const promos: Promo[] = [
     subtitle: 'Your personal relaxation spot',
     cta: 'SHOP NOW',
     href: '/products',
-    image: 'https://res.cloudinary.com/demo/image/upload/v1630000000/furniture/armchair_1.png',
+    image: '/images/backpack.png',
     bg: 'bg-[#f5f0f4]',
   },
   {
@@ -57,7 +57,7 @@ const promos: Promo[] = [
     subtitle: 'Elegant storage solution',
     cta: 'EXPLORE',
     href: '/products',
-    image: 'https://res.cloudinary.com/demo/image/upload/v1630000000/furniture/bookshelf_1.png',
+    image: '/images/backpack.png',
     bg: 'bg-[#d3e4e8]',
   },
   {
@@ -66,7 +66,7 @@ const promos: Promo[] = [
     subtitle: 'Contemporary centerpiece',
     cta: 'SHOP NOW',
     href: '/products',
-    image: 'https://res.cloudinary.com/demo/image/upload/v1630000000/furniture/coffee_table_1.png',
+    image: '/images/backpack.png',
     bg: 'bg-[#bdb5bd]',
   },
   {
@@ -75,7 +75,7 @@ const promos: Promo[] = [
     subtitle: 'Gather around in style',
     cta: 'VIEW COLLECTION',
     href: '/products',
-    image: 'https://res.cloudinary.com/demo/image/upload/v1630000000/furniture/dining_set_1.png',
+    image: '/images/backpack.png',
     bg: 'bg-[#ffc107]',
   },
   {
@@ -84,7 +84,7 @@ const promos: Promo[] = [
     subtitle: 'Functional bedside companion',
     cta: 'DISCOVER',
     href: '/products',
-    image: 'https://res.cloudinary.com/demo/image/upload/v1630000000/furniture/nightstand_1.png',
+    image: '/images/backpack.png',
     bg: 'bg-[#ffd7be]',
   },
 ];
@@ -125,14 +125,15 @@ export default function TopProducts() {
         >
           <div className="grid gap-6 md:grid-cols-2 transition-transform duration-500 ease-in-out">
             {visiblePromos.map((p) => (
-              <div key={p.id} className={`${p.bg} rounded-2xl overflow-hidden hover:shadow-md transition-shadow`}>
+              <div key={p.id} className={`${p.bg} rounded-2xl hover:shadow-md transition-shadow relative h-[320px] sm:h-64 md:h-60 overflow-hidden`}>
                 <div className="relative grid grid-cols-1 md:grid-cols-2 items-center h-full">
-                  <div className="p-5 sm:p-8 md:p-10 order-2 md:order-1">
-                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-800">{p.title}</h3>
-                    <p className="text-sm sm:text-base text-gray-500 mt-1 sm:mt-2">{p.subtitle}</p>
+                  {/* Content Section */}
+                  <div className="p-6 sm:p-8 md:p-10 order-2 md:order-1 z-10 bg-gradient-to-t from-black/10 to-transparent md:bg-none">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 md:text-gray-800">{p.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-600 md:text-gray-500 mt-1 sm:mt-2">{p.subtitle}</p>
                     <Link 
                       href={p.href} 
-                      className="mt-6 inline-flex items-center text-[var(--color-primary)] font-medium group"
+                      className="mt-4 md:mt-6 inline-flex items-center text-[var(--color-primary)] font-medium group"
                     >
                       {p.cta}
                       <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,15 +141,21 @@ export default function TopProducts() {
                       </svg>
                     </Link>
                   </div>
-                  <div className="relative h-48 sm:h-64 md:h-80 order-1 md:order-2">
-                    <Image
-                      src={p.image}
-                      alt={p.title}
-                      fill
-                      className="object-contain p-4 sm:p-6 md:p-10"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      priority
-                    />
+                  
+                  {/* Image Section */}
+                  <div className="relative h-48 md:h-full order-1 md:order-2">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="relative w-full h-full max-h-[180px] md:max-h-none">
+                        <Image
+                          src={p.image}
+                          alt={p.title}
+                          fill
+                          className="object-contain object-center"
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          priority
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
