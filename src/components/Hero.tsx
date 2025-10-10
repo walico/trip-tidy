@@ -101,7 +101,7 @@ export default function Hero() {
               </Link>
               <Link 
                 href="/collections" 
-                className="w-full sm:w-auto text-center border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-colors px-6 py-3 sm:px-8 sm:py-3 text-sm sm:text-base font-medium rounded-md"
+                className="w-full sm:w-auto text-center border border-white text-white hover:border-none hover:bg-[var(--color-primary)] hover:text-white transition-colors px-6 py-3 sm:px-8 sm:py-3 text-sm sm:text-base font-medium rounded-md"
               >
                 Browse Collections
               </Link>

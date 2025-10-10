@@ -20,11 +20,11 @@ export default function Banner() {
           {/* Right: copy without background */}
           <div className="p-6 md:p-8 flex flex-col justify-center bg-[#0f172a] rounded-[0_10px_10px_0]">
             <div className="text-xs uppercase tracking-widest text-gray-500">Limited offer</div>
-            <h3 className="mt-2 text-2xl md:text-3xl font-semibold leading-tight text-gray-50">35% off only this Friday and get special gift</h3>
+            <h3 className="mt-1 text-4xl md:text-4xl font-semibold leading-tight text-gray-50">35% off only this Friday and get special gift</h3>
             <div className="mt-6">
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 rounded-full btn-primary px-5 py-2 text-sm font-medium text-white"
+                className="inline-flex items-center gap-2 rounded-full btn-primary px-5 py-2 text-sm uppercase font-medium text-white"
               >
                 Grab it now
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>

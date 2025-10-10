@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const categories = [  
   { slug: 'tech', title: 'Tech Accessories', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1200&auto=format&fit=crop' },
@@ -17,50 +17,59 @@ const categories = [
 export default function CollectionCategories() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === categories.length - 1 ? 0 : prevIndex + 1
     );
-  };
+  }, []);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? categories.length - 1 : prevIndex - 1
     );
-  };
+  }, []);
+
+  // Auto slide effect
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      nextSlide();
+    }, 3000); // Change slide every 5 seconds
+
+    // Clear interval on component unmount
+    return () => clearInterval(slideInterval);
+  }, [nextSlide]);
 
   return (
     <section className="bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-center justify-center mb-8">
           <h2 className="font-semibold text-4xl text-gray-700">Shop by Category</h2>
-          {/* <div className="flex items-center gap-2">
-            <button
-              onClick={prevSlide}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              aria-label="Previous category"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
-            </button>
-            <button
-              onClick={nextSlide}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              aria-label="Next category"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </button>
-          </div> */}
         </div>
 
-        <div className="relative">
+        <div className="relative group">
+          {/* Navigation arrows */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50"
+            aria-label="Previous category"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground)" strokeWidth="2">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 p-2 rounded-full bg-white shadow-md hover:bg-gray-50"
+            aria-label="Next category"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground)" strokeWidth="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
           {/* Carousel container */}
           <div className="overflow-hidden">
             <div
-              className="flex transition-transform duration-300 ease-in-out gap-6"
+              className="flex transition-transform duration-500 ease-in-out gap-6"
               style={{ transform: `translateX(-${currentIndex * (100 / categories.length)}%)` }}
             >
               {categories.map((category) => (

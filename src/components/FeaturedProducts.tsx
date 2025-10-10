@@ -93,15 +93,51 @@ function ProductCard({ product }: { product: Product }) {
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         
-        <button 
-          onClick={handleAddToCart}
-          className="absolute right-2 top-2 sm:right-4 sm:top-4 flex items-center justify-center rounded-full bg-white/80 p-1.5 text-gray-900 shadow-md transition-all hover:bg-white hover:scale-110"
-          aria-label="Add to cart"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-          </svg>
-        </button>
+        <div className="absolute right-2 top-2 sm:right-4 sm:top-4 flex gap-2">
+          {/* Mobile: Always visible buttons */}
+          <div className="flex sm:hidden gap-2">
+            <button 
+              className="flex items-center justify-center rounded-full bg-white/80 p-1.5 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
+              aria-label="Add to wishlist"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+              </svg>
+            </button>
+            
+            <button 
+              onClick={handleAddToCart}
+              className="flex items-center justify-center rounded-full bg-white/80 p-1.5 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
+              aria-label="Add to cart"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Desktop: Buttons shown on hover */}
+          <div className="hidden sm:flex opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-2">
+            <button 
+              className="flex items-center justify-center rounded-full bg-white/80 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110 cursor-pointer"
+              aria-label="Add to wishlist"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+              </svg>
+            </button>
+            
+            <button 
+              onClick={handleAddToCart}
+              className="flex items-center justify-center rounded-full bg-white/80 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110 cursor-pointer"
+              aria-label="Add to cart"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="p-3 sm:p-4">
