@@ -12,8 +12,6 @@ import TopProducts from '@/components/TopProducts';
 export default function Home() {
   return (
     <main>
-      <AnnouncementBar />
-      <NavBar />
       <Hero />
       <Info />
       <CollectionCategories />

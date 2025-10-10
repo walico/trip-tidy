@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { Providers } from "@/providers/Providers";
 import { Toaster } from 'react-hot-toast';
+import NavBar from "@/components/NavBar";
+import AnnouncementBar from "@/components/AnnouncementBar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,7 +39,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
       >
         <Providers>
-          {children}
+          <AnnouncementBar />
+          <NavBar />
+          <main className="min-h-[calc(100vh-64px)]">
+            {children}
+          </main>
           <Toaster position="top-right" />
         </Providers>
       </body>
