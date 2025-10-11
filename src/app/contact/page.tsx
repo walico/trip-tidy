@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Mail, MapPin, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 
@@ -37,7 +36,7 @@ export default function ContactPage() {
             Get in Touch
           </h1>
           <p className="mt-4 text-gray-600">
-            Have questions or feedback? We'd love to hear from you.
+            Have questions or feedback? We&apos;d love to hear from you.
           </p>
         </div>
       </div>
@@ -121,7 +120,7 @@ export default function ContactPage() {
             <div className="lg:pl-8 lg:border-l lg:border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900">Contact Information</h2>
               <p className="mt-2 text-gray-600">
-                We're here to help and answer any questions you might have.
+                We&apos;re here to help and answer any questions you might have.
               </p>
 
               <div className="mt-8 space-y-6">

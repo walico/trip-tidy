@@ -3,12 +3,22 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Star, ChevronRight, ChevronLeft, Heart } from 'lucide-react';
+import { Star, ChevronRight, Heart } from 'lucide-react';
 import TopProducts from '@/components/TopProducts';
 import Footer from '@/components/Footer';
 import Newsletter from '@/components/Newsletter';
 import { useCart } from '@/contexts/CartContext';
+
+// Define product type
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  originalPrice: number;
+  rating: number;
+  reviewCount: number;
+  image: string;
+}
 
 // Sample collection data - in a real app, this would come from an API
 const collection = {
@@ -43,14 +53,13 @@ const collection = {
       reviewCount: 28,
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
     },
-  ],
+  ] as Product[],
 };
 
 function CollectionDetailContent({ id }: { id: string }) {
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const { addToCart } = useCart();
 
-  const handleAddToCart = (e: React.MouseEvent, product: any) => {
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart({

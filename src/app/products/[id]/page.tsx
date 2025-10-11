@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
-import { Star, Truck, Shield, ChevronLeft, Check, ChevronRight, ChevronLeft as ChevronLeftIcon, Heart } from 'lucide-react';
+import { Star, Truck, Shield, ChevronRight, Check, Heart } from 'lucide-react';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 
@@ -40,7 +40,6 @@ function ProductDetailContent({ id }: { id: string }) {
 
   // State for the component
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
   const [selectedSize, setSelectedSize] = useState(product.sizes[1]);
   const [quantity, setQuantity] = useState(1);
 

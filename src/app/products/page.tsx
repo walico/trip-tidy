@@ -3,11 +3,23 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Filter, Search, ChevronDown, Star } from 'lucide-react';
+import { Filter, Search, Star } from 'lucide-react';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 import { useCart } from '@/contexts/CartContext';
+
+// Define product type
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  reviewCount: number;
+  image: string;
+  category: string;
+  colors: string[];
+}
 
 // Mock data - in a real app, this would come from an API
 const products = [
@@ -75,7 +87,7 @@ const products = [
     category: 'Hiking',
     colors: ['Blue', 'Black']
   }
-];
+] as Product[];
 
 const categories = [
   { id: 'all', name: 'All Products' },
@@ -89,7 +101,7 @@ const categories = [
 export default function ProductsPage() {
   const { addToCart } = useCart();
   
-  const handleAddToCart = (e: React.MouseEvent, product: any) => {
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart({
@@ -348,7 +360,7 @@ export default function ProductsPage() {
         ) : (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900">No products found</h3>
-            <p className="mt-1 text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
+            <p className="mt-1 text-gray-500">Try adjusting your search or filter to find what you&apos;re looking for.</p>
             <div className="mt-6">
               <button
                 onClick={() => {
