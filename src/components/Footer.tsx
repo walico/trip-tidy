@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -57,34 +58,37 @@ export default function Footer() {
             <h3 className="text-sm font-medium text-gray-900 mb-3">WE ACCEPT</h3>
             <div className="flex items-center space-x-3">
               {/* Visa */}
-              <svg className="h-6 w-10 opacity-70 hover:opacity-100" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M35 0H3C1.3 0 0 1.3 0 3v18c0 1.7 1.4 3 3 3h32c1.7 0 3-1.3 3-3V3c0-1.7-1.4-3-3-3z" fill="#1A1F71"/>
-                <path d="M35 0c1.7 0 3 1.3 3 3v18c0 1.7-1.4 3-3 3h-5.3L35 0z" fill="#F7A600"/>
-                <path d="M12.9 15.4h-2.2l-1.3-8.7h2.2l.8 6.4 3.5-6.4h2.1l-3.6 6.4 1.1 2.3h-2.4l-1.2-2.4-1.1 2.4z" fill="#fff"/>
-              </svg>
+              <div className="h-8 w-8 relative opacity-70 hover:opacity-100">
+                <Image 
+                  src="/images/visa.png" 
+                  alt="Visa" 
+                  fill
+                  sizes="80px"
+                  className="object-contain"
+                />
+              </div>
               
               {/* Mastercard */}
-              <svg className="h-6 w-10 opacity-70 hover:opacity-100" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M35 0H3C1.3 0 0 1.3 0 3v18c0 1.7 1.4 3 3 3h32c1.7 0 3-1.3 3-3V3c0-1.7-1.4-3-3-3z" fill="#252525"/>
-                <path d="M35 1c1.1 0 2 .9 2 2v18c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V3c0-1.1.9-2 2-2h32z" fill="#FF5F00"/>
-                <path d="M19 17.5c2.8 0 5-2.2 5-5s-2.2-5-5-5-5 2.2-5 5 2.2 5 5 5z" fill="#EB001B"/>
-                <path d="M19 17.5c1.1 0 2.1-.4 2.9-1.1-1.4-.9-2.3-2.5-2.3-4.2 0-1.7.9-3.3 2.3-4.2-.8-.7-1.8-1.1-2.9-1.1-2.8 0-5 2.2-5 5s2.2 5 5 5z" fill="#F79E1B"/>
-              </svg>
+              <div className="h-8 w-8 relative opacity-70 hover:opacity-100">
+                <Image 
+                  src="/images/mastercard.png" 
+                  alt="Mastercard" 
+                  fill
+                  sizes="80px"
+                  className="object-contain"
+                />
+              </div>  
               
               {/* PayPal */}
-              <svg className="h-6 w-10 opacity-70 hover:opacity-100" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M35 0H3C1.3 0 0 1.3 0 3v18c0 1.7 1.4 3 3 3h32c1.7 0 3-1.3 3-3V3c0-1.7-1.4-3-3-3z" fill="#002987"/>
-                <path d="M28.5 6.5c-.7-.8-1.7-1.2-2.9-1.2h-8.5c-.4 0-.7.3-.8.7l-2.1 13.5c0 .2.1.3.3.3h3.9c.2 0 .4-.2.4-.4l.5-3.3c0-.2.2-.4.4-.4h2.4c3.5 0 6.2-.8 7-3.4.4-1.2.3-2.3-.4-3.2z" fill="#009CDE"/>
-                <path d="M27.3 7.3c-.7-.8-1.8-1.2-3-1.2H15.8c-.4 0-.7.3-.8.7l-2.1 13.5c0 .2.1.3.3.3h4.5l1.2-7.7c0-.2.2-.4.4-.4h2.4c3.5 0 6.2-.8 7-3.4.2-.7.2-1.3.1-1.8z" fill="#00186A"/>
-              </svg>
-              
-              {/* Apple Pay */}
-              <svg className="h-6 w-10 opacity-70 hover:opacity-100" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M35 0H3C1.3 0 0 1.3 0 3v18c0 1.7 1.4 3 3 3h32c1.7 0 3-1.3 3-3V3c0-1.7-1.4-3-3-3z" fill="#000"/>
-                <path d="M19 17.5c-1.9 0-3.4-1.5-3.4-3.4 0-1.9 1.5-3.4 3.4-3.4 1.9 0 3.4 1.5 3.4 3.4 0 1.9-1.5 3.4-3.4 3.4z" fill="#fff"/>
-                <path d="M19 11.7c-1.3 0-2.4 1.1-2.4 2.4s1.1 2.4 2.4 2.4 2.4-1.1 2.4-2.4c0-1.3-1.1-2.4-2.4-2.4zm0 3.3c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9z" fill="#000"/>
-                <path d="M19 12.6c-.8 0-1.5.7-1.5 1.5s.7 1.5 1.5 1.5 1.5-.7 1.5-1.5-.7-1.5-1.5-1.5z" fill="#000"/>
-              </svg>
+              <div className="h-10 w-10 relative opacity-70 hover:opacity-100">
+                <Image 
+                  src="/images/paypal1.png" 
+                  alt="PayPal" 
+                  fill
+                  sizes="120px"
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
