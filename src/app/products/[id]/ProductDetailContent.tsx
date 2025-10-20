@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
-import { Star, Truck, Shield, ChevronRight, Check, Heart } from 'lucide-react';
+import { Truck, Shield, ChevronRight, Heart, ChevronLeft } from 'lucide-react';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 import { formatPrice } from '@/lib/shopify';
@@ -15,12 +15,8 @@ interface Product {
   title: string;
   price: string;
   originalPrice?: string;
-  rating: number;
-  reviewCount: number;
-  image: string;
   handle: string;
   description: string;
-  features: string[];
   images: string[];
 }
 
@@ -31,6 +27,15 @@ export default function ProductDetailContent({ product }: { product: Product }) 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('M');
   const [quantity, setQuantity] = useState(1);
+
+  // Image navigation functions
+  const nextImage = () => {
+    setSelectedImage((prev) => (prev + 1) % product.images.length);
+  };
+
+  const prevImage = () => {
+    setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+  };
 
   return (
     <main className="bg-white">
@@ -63,7 +68,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
         <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
           {/* Product images */}
           <div className="flex flex-col">
-            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 mb-4">
+            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 mb-4 group">
               <Image
                 src={product.images[selectedImage]}
                 alt={product.title}
@@ -72,8 +77,28 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
+
+              {/* Navigation Controls */}
+              {product.images.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="h-6 w-6 text-gray-700" />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="h-6 w-6 text-gray-700" />
+                  </button>
+                </>
+              )}
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-2">
+            <div className="grid grid-cols-7 gap-2 mt-2">
               {product.images.map((image, index) => (
                 <button
                   key={index}
@@ -101,7 +126,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
             {/* Price and rating */}
             <div className="mt-4">
               <div className="flex items-center">
-                <p className="text-3xl font-bold text-gray-900">${formatPrice(product.price)}</p>
+                <p className="text-3xl font-bold text-gray-900">{formatPrice(product.price)}</p>
                 {product.originalPrice && (
                   <>
                     <p className="ml-3 text-lg text-gray-500 line-through">${formatPrice(product.originalPrice)}</p>
@@ -110,24 +135,6 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                     </span>
                   </>
                 )}
-              </div>
-
-              <div className="mt-3 flex items-center">
-                <div className="flex items-center">
-                  {[0, 1, 2, 3, 4].map((rating) => (
-                    <Star
-                      key={rating}
-                      className={`h-5 w-5 flex-shrink-0 ${
-                        rating < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'
-                      }`}
-                      aria-hidden="true"
-                      fill={rating < Math.floor(product.rating) ? 'currentColor' : 'none'}
-                    />
-                  ))}
-                </div>
-                <p className="ml-2 text-sm text-gray-500">
-                  {product.rating} <span className="text-gray-400">•</span> {product.reviewCount} reviews
-                </p>
               </div>
             </div>
 
@@ -215,19 +222,6 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                   </button>
                 </div>
               </div>
-            </div>
-
-            {/* Features */}
-            <div className="mt-8 border-t border-gray-200 pt-6">
-              <h2 className="text-sm font-medium text-gray-900 mb-3">Product Features</h2>
-              <ul className="space-y-2">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-sm text-gray-600">{feature}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
 
             {/* Shipping & Support */}

@@ -8,7 +8,7 @@ export const shopifyClient = createStorefrontApiClient({
 
 export const PRODUCT_FIELDS = `
   fragment ProductFields on Product {
-    id  
+    id
     title
     description
     handle
@@ -22,7 +22,7 @@ export const PRODUCT_FIELDS = `
         currencyCode
       }
     }
-    images(first: 1) {
+    images(first: 100) {
       edges {
         node {
           url
@@ -30,7 +30,7 @@ export const PRODUCT_FIELDS = `
         }
       }
     }
-    variants(first: 1) {
+    variants(first: 100) {
       edges {
         node {
           id
@@ -126,11 +126,22 @@ export const getProductImage = (product: any): string => {
   return product.images?.edges?.[0]?.node?.url || '';
 };
 
+export const getProductImages = (product: any): string[] => {
+  return product.images?.edges?.map((edge: any) => edge.node.url) || [];
+};
+
 export const getProductPrice = (product: any): string => {
   return product.priceRange?.minVariantPrice?.amount || '0';
 };
 
 export const getProductOriginalPrice = (product: any): string => {
-  const compareAtPrice = product.variants?.edges?.[0]?.node?.compareAtPrice?.amount;
-  return compareAtPrice || '';
+  // Check all variants for compare at price and return the minimum one
+  const variants = product.variants?.edges || [];
+  if (variants.length === 0) return '';
+
+  const compareAtPrices = variants
+    .map((edge: any) => edge.node.compareAtPrice?.amount)
+    .filter((price: string) => price);
+
+  return compareAtPrices.length > 0 ? Math.min(...compareAtPrices.map(parseFloat)).toString() : '';
 };

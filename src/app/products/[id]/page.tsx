@@ -1,19 +1,15 @@
 import { notFound } from 'next/navigation';
 import ProductDetailContent from './ProductDetailContent';
-import { shopifyClient, GET_PRODUCT_QUERY, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
+import { shopifyClient, GET_PRODUCT_QUERY, getProductImage, getProductImages, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
 
-// Define product type
+// Define product type based on Shopify data structure
 interface Product {
   id: string;
   title: string;
   price: string;
   originalPrice?: string;
-  rating: number;
-  reviewCount: number;
-  image: string;
   handle: string;
   description: string;
-  features: string[];
   images: string[];
 }
 
@@ -27,24 +23,15 @@ async function fetchProduct(handle: string): Promise<Product | null> {
     }
 
     const product = data.product;
+
     return {
       id: product.id,
       title: product.title,
       price: getProductPrice(product),
       originalPrice: getProductOriginalPrice(product),
-      rating: 4.5, // Default rating since Shopify doesn't provide this
-      reviewCount: 0, // Default review count
-      image: getProductImage(product),
       handle: product.handle,
       description: product.description,
-      features: [
-        'Premium quality materials',
-        'Durable construction',
-        'Comfortable design',
-        'Easy to use',
-        'Long-lasting performance'
-      ], // Default features since Shopify doesn't provide this
-      images: [getProductImage(product)], // Using the same image for all variants for now
+      images: getProductImages(product),
     };
   } catch (error) {
     console.error('Error fetching product:', error);
