@@ -1,43 +1,87 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import TopProducts from '@/components/TopProducts';
 import Footer from '@/components/Footer';
 import Newsletter from '@/components/Newsletter';
+import { shopifyClient, GET_COLLECTIONS_QUERY, getProductImage } from '@/lib/shopify';
 
-// Sample collections data - in a real app, this would come from an API
-const collections = [
-  {
-    id: 'summer-collection',
-    title: 'Summer Collection',
-    description: 'Lightweight and breathable pieces for your summer adventures',
-    image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1200&auto=format&fit=crop',
-    productCount: 12,
-  },
-  {
-    id: 'winter-essentials',
-    title: 'Winter Essentials',
-    description: 'Stay warm and stylish in cold weather',
-    image: 'https://images.unsplash.com/photo-1516764559460-3a2c8f4a3b3e?q=80&w=1200&auto=format&fit=crop',
-    productCount: 15,
-  },
-  {
-    id: 'travel-gear',
-    title: 'Travel Gear',
-    description: 'Essential gear for your next adventure',
-    image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1200&auto=format&fit=crop',
-    productCount: 20,
-  },
-  {
-    id: 'accessories',
-    title: 'Accessories',
-    description: 'Complete your look with our accessories',
-    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop',
-    productCount: 18,
-  },
-];
+// Define collection type
+interface Collection {
+  id: string;
+  title: string;
+  description: string;
+  handle: string;
+  image: string;
+}
 
 export default function CollectionsPage() {
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch collections on mount
+  useEffect(() => {
+    async function loadCollections() {
+      try {
+        setLoading(true);
+        const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, { variables: { first: 20 } });
+
+        const fetchedCollections = data.collections.edges.map((edge: any) => {
+          const collection = edge.node;
+          return {
+            id: collection.id,
+            title: collection.title,
+            description: collection.description,
+            handle: collection.handle,
+            image: collection.image?.url || '/images/shopping_cart.jpg',
+          };
+        });
+
+        setCollections(fetchedCollections);
+      } catch (err) {
+        console.error('Error fetching collections:', err);
+        setError('Failed to load collections');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCollections();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="bg-white">
+        <div className="bg-gray-50 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
+              Loading Collections...
+            </h1>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="bg-white">
+        <div className="bg-gray-50 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-red-600 sm:text-5xl md:text-6xl">
+              Error
+            </h1>
+            <p className="text-gray-600 mt-4">{error}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="bg-white">
       {/* Hero Section */}
@@ -72,12 +116,12 @@ export default function CollectionsPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{collection.title}</h2>
                 <p className="text-gray-600 mb-4">{collection.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">{collection.productCount} items</span>
-                  <Link 
-                    href={`/collections/${collection.id}`}
+                  <span className="text-sm text-gray-500">View collection</span>
+                  <Link
+                    href={`/collections/${collection.handle}`}
                     className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-primary/80 transition-colors"
                   >
-                    View collection
+                    Explore
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Link>
                 </div>

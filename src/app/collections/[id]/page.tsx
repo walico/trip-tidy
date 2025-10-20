@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, ChevronRight, Heart } from 'lucide-react';
@@ -8,56 +8,80 @@ import TopProducts from '@/components/TopProducts';
 import Footer from '@/components/Footer';
 import Newsletter from '@/components/Newsletter';
 import { useCart } from '@/contexts/CartContext';
+import { shopifyClient, GET_COLLECTION_QUERY, formatPrice, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
 
 // Define product type
 interface Product {
   id: string;
   title: string;
-  price: number;
-  originalPrice: number;
+  price: string;
+  originalPrice?: string;
   rating: number;
   reviewCount: number;
   image: string;
+  handle: string;
 }
 
-// Sample collection data - in a real app, this would come from an API
-const collection = {
-  id: 'summer-collection',
-  title: 'Summer Collection 2023',
-  description: 'Discover our latest summer collection featuring lightweight and breathable fabrics perfect for your next adventure. Designed for comfort and style, these pieces will keep you cool and looking great all season long.',
-  products: [
-    {
-      id: '1',
-      title: 'Lightweight Travel Shirt',
-      price: 49.99,
-      originalPrice: 69.99,
-      rating: 4.5,
-      reviewCount: 42,
-      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: '2',
-      title: 'Breathable Shorts',
-      price: 39.99,
-      originalPrice: 59.99,
-      rating: 4.2,
-      reviewCount: 36,
-      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: '3',
-      title: 'Sun Protection Hat',
-      price: 29.99,
-      originalPrice: 39.99,
-      rating: 4.7,
-      reviewCount: 28,
-      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    },
-  ] as Product[],
-};
+interface Collection {
+  id: string;
+  title: string;
+  description: string;
+  handle: string;
+  image: string;
+  products: Product[];
+}
 
 function CollectionDetailContent({ id }: { id: string }) {
   const { addToCart } = useCart();
+  const [collection, setCollection] = useState<Collection | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch collection and products on mount
+  useEffect(() => {
+    async function loadCollection() {
+      try {
+        setLoading(true);
+        const { data } = await shopifyClient.request(GET_COLLECTION_QUERY, { variables: { handle: id } });
+
+        if (!data.collection) {
+          setError('Collection not found');
+          return;
+        }
+
+        const collectionData = data.collection;
+        const products = collectionData.products.edges.map((edge: any) => {
+          const product = edge.node;
+          return {
+            id: product.id,
+            title: product.title,
+            price: getProductPrice(product),
+            originalPrice: getProductOriginalPrice(product),
+            rating: 4.5, // Default rating
+            reviewCount: 0, // Default review count
+            image: getProductImage(product),
+            handle: product.handle,
+          };
+        });
+
+        setCollection({
+          id: collectionData.id,
+          title: collectionData.title,
+          description: collectionData.description,
+          handle: collectionData.handle,
+          image: collectionData.image?.url || '',
+          products,
+        });
+      } catch (err) {
+        console.error('Error fetching collection:', err);
+        setError('Failed to load collection');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCollection();
+  }, [id]);
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -65,10 +89,38 @@ function CollectionDetailContent({ id }: { id: string }) {
     addToCart({
       id: product.id,
       title: product.title,
-      price: product.price.toString(),
+      price: product.price,
       img: product.image
     });
   };
+
+  if (loading) {
+    return (
+      <main className="bg-white">
+        <div className="bg-gray-50 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
+              Loading Collection...
+            </h1>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !collection) {
+    return (
+      <main className="bg-white">
+        <div className="bg-gray-50 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-red-600 sm:text-5xl md:text-6xl">
+              {error || 'Collection not found'}
+            </h1>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-white">
@@ -100,7 +152,7 @@ function CollectionDetailContent({ id }: { id: string }) {
               </li>
             </ol>
           </nav>
-          
+
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
               {collection.title}
@@ -116,7 +168,7 @@ function CollectionDetailContent({ id }: { id: string }) {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
           {collection.products.map((product) => (
-            <Link key={product.id} href={`/products/${product.id}`} className="group block overflow-hidden rounded-lg bg-white transition-shadow hover:shadow-md">
+            <Link key={product.id} href={`/products/${product.handle}`} className="group block overflow-hidden rounded-lg bg-white transition-shadow hover:shadow-md">
               <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-[10px_10px_0_0] bg-gray-200 xl:aspect-h-8 xl:aspect-w-7 relative">
                 <Image
                   src={product.image}
@@ -125,15 +177,15 @@ function CollectionDetailContent({ id }: { id: string }) {
                   height={500}
                   className="h-full w-full object-cover object-center group-hover:opacity-75"
                 />
-                
-                {product.originalPrice > product.price && (
+
+                {product.originalPrice && (
                   <div className="absolute top-2 right-2 rounded-full bg-red-500 px-2 py-1 text-xs font-medium text-white">
                     SALE
                   </div>
                 )}
 
                 <div className="absolute bottom-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -144,7 +196,7 @@ function CollectionDetailContent({ id }: { id: string }) {
                   >
                     <Heart className="h-5 w-5" />
                   </button>
-                  <button 
+                  <button
                     onClick={(e) => handleAddToCart(e, product)}
                     className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
                     aria-label="Add to cart"
@@ -155,7 +207,7 @@ function CollectionDetailContent({ id }: { id: string }) {
                   </button>
                 </div>
               </div>
-              
+
               <div className="flex justify-between border border-t-0 border-gray-200 p-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 truncate" title={product.title.trim()}>
@@ -180,13 +232,13 @@ function CollectionDetailContent({ id }: { id: string }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  {product.originalPrice > product.price ? (
+                  {product.originalPrice ? (
                     <>
-                      <p className="text-lg font-medium text-[var(--color-primary)]">${product.price.toFixed(2)}</p>
-                      <p className="text-xs text-gray-500 line-through">${product.originalPrice.toFixed(2)}</p>
+                      <p className="text-lg font-medium text-[var(--color-primary)]">${formatPrice(product.price)}</p>
+                      <p className="text-xs text-gray-500 line-through">${formatPrice(product.originalPrice)}</p>
                     </>
                   ) : (
-                    <p className="text-lg font-medium text-[var(--color-primary)]">${product.price.toFixed(2)}</p>
+                    <p className="text-lg font-medium text-[var(--color-primary)]">${formatPrice(product.price)}</p>
                   )}
                 </div>
               </div>

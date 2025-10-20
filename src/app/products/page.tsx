@@ -1,144 +1,103 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Filter, Search, Star } from 'lucide-react';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 import { useCart } from '@/contexts/CartContext';
+import { shopifyClient, GET_PRODUCTS_QUERY, formatPrice, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
 
 // Define product type
 interface Product {
   id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
+  title: string;
+  price: string;
+  originalPrice?: string;
   rating: number;
   reviewCount: number;
   image: string;
-  category: string;
-  colors: string[];
+  handle: string;
 }
-
-// Mock data - in a real app, this would come from an API
-const products = [
-  {
-    id: '1',
-    name: 'Premium Travel Backpack',
-    price: 129.99,
-    originalPrice: 159.99,
-    rating: 4.8,
-    reviewCount: 124,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    category: 'Backpacks',
-    colors: ['Black', 'Navy', 'Olive']
-  },
-  {
-    id: '2',
-    name: 'Ultralight Daypack',
-    price: 89.99,
-    originalPrice: 99.99,
-    rating: 4.6,
-    reviewCount: 89,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    category: 'Daypacks',
-    colors: ['Black', 'Gray', 'Blue']
-  },
-  {
-    id: '3',
-    name: 'Hiking Backpack 65L',
-    price: 199.99,
-    originalPrice: 249.99,
-    rating: 4.9,
-    reviewCount: 215,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    category: 'Hiking',
-    colors: ['Green', 'Gray']
-  },
-  {
-    id: '4',
-    name: 'Laptop Backpack',
-    price: 79.99,
-    rating: 4.5,
-    reviewCount: 156,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    category: 'Urban',
-    colors: ['Black', 'Gray', 'Navy']
-  },
-  {
-    id: '5',
-    name: 'Travel Duffle Bag',
-    price: 69.99,
-    originalPrice: 89.99,
-    rating: 4.3,
-    reviewCount: 78,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit-crop',
-    category: 'Duffles',
-    colors: ['Black', 'Gray', 'Green']
-  },
-  {
-    id: '6',
-    name: 'Waterproof Hiking Backpack',
-    price: 149.99,
-    rating: 4.7,
-    reviewCount: 203,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop',
-    category: 'Hiking',
-    colors: ['Blue', 'Black']
-  }
-] as Product[];
-
-const categories = [
-  { id: 'all', name: 'All Products' },
-  { id: 'backpacks', name: 'Backpacks' },
-  { id: 'daypacks', name: 'Daypacks' },
-  { id: 'hiking', name: 'Hiking' },
-  { id: 'duffles', name: 'Duffles' },
-  { id: 'urban', name: 'Urban' },
-];
 
 export default function ProductsPage() {
   const { addToCart } = useCart();
-  
-  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addToCart({
-      id: product.id,
-      title: product.name,
-      price: product.price.toString(),
-      img: product.image
-    });
-  };
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch products on mount
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        setLoading(true);
+        const { data } = await shopifyClient.request(GET_PRODUCTS_QUERY, { variables: { first: 50 } });
+
+        const fetchedProducts = data.products.edges.map((edge: any) => {
+          const product = edge.node;
+          return {
+            id: product.id,
+            title: product.title,
+            price: getProductPrice(product),
+            originalPrice: getProductOriginalPrice(product),
+            rating: 4.5, // Default rating
+            reviewCount: 0, // Default review count
+            image: getProductImage(product),
+            handle: product.handle,
+          };
+        });
+
+        setProducts(fetchedProducts);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProducts();
+  }, []);
+
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage, setProductsPerPage] = useState(8); // Number of products per page
+  const [productsPerPage, setProductsPerPage] = useState(8);
 
-  // Get current products
+  // Filter and sort products
   const filteredProducts = products
     .filter(product => {
-      const matchesCategory = selectedCategory === 'all' || 
-        product.category.toLowerCase() === selectedCategory.toLowerCase();
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' ||
+        product.title.toLowerCase().includes(selectedCategory.toLowerCase());
+      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
-      if (sortBy === 'price-low-high') return a.price - b.price;
-      if (sortBy === 'price-high-low') return b.price - a.price;
+      if (sortBy === 'price-low-high') return parseFloat(a.price) - parseFloat(b.price);
+      if (sortBy === 'price-high-low') return parseFloat(b.price) - parseFloat(a.price);
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0; // Default sort (featured)
     });
 
-  // Get current products
+  // Pagination
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      img: product.image
+    });
+  };
 
   // Change page
   const paginate = (pageNumber: number) => {
@@ -155,6 +114,31 @@ export default function ProductsPage() {
     setProductsPerPage(Number(e.target.value));
     setCurrentPage(1); // Reset to first page when changing items per page
   };
+
+  if (loading) {
+    return (
+      <main className="bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900">Loading products...</h1>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-red-600">Error</h1>
+            <p className="text-gray-500 mt-4">{error}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-gray-50">
@@ -175,17 +159,17 @@ export default function ProductsPage() {
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
           {/* Category Tabs */}
           <div className="flex space-x-2 overflow-x-auto pb-2 md:pb-0">
-            {categories.map((category) => (
+            {['all', 'backpacks', 'daypacks', 'hiking', 'duffles', 'urban'].map((category) => (
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                key={category}
+                onClick={() => setSelectedCategory(category)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${
-                  selectedCategory === category.id
+                  selectedCategory === category
                     ? 'bg-primary text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                {category.name}
+                {category === 'all' ? 'All Products' : category.charAt(0).toUpperCase() + category.slice(1)}
               </button>
             ))}
           </div>
@@ -216,21 +200,16 @@ export default function ProductsPage() {
             </button>
 
             {/* Sort */}
-            <div className="relative
-">
-              <select
-                id="sort"
-                name="sort"
-                className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="featured">Featured</option>
-                <option value="price-low-high">Price: Low to High</option>
-                <option value="price-high-low">Price: High to Low</option>
-                <option value="rating">Top Rated</option>
-              </select>
-            </div>
+            <select
+              className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="featured">Featured</option>
+              <option value="price-low-high">Price: Low to High</option>
+              <option value="price-high-low">Price: High to Low</option>
+              <option value="rating">Top Rated</option>
+            </select>
           </div>
         </div>
 
@@ -277,16 +256,16 @@ export default function ProductsPage() {
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
             {currentProducts.map((product) => (
-              <Link key={product.id} href={`/products/${product.id}`} className="group block overflow-hidden rounded-lg bg-white transition-shadow hover:shadow-md">
+              <Link key={product.id} href={`/products/${product.handle}`} className="group block overflow-hidden rounded-lg bg-white transition-shadow hover:shadow-md">
                 <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-[10px_10px_0_0] bg-gray-200 xl:aspect-h-8 xl:aspect-w-7 relative">
                   <Image
                     src={product.image}
-                    alt={product.name}
+                    alt={product.title}
                     width={500}
                     height={500}
                     className="h-full w-full object-cover object-center group-hover:opacity-75"
                   />
-                  
+
                   {product.originalPrice && (
                     <div className="absolute top-2 right-2 rounded-full bg-red-500 px-2 py-1 text-xs font-medium text-white">
                       SALE
@@ -294,12 +273,7 @@ export default function ProductsPage() {
                   )}
 
                   <div className="absolute bottom-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Add to wishlist logic here
-                      }}
+                    <button
                       className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
                       aria-label="Add to wishlist"
                     >
@@ -307,8 +281,8 @@ export default function ProductsPage() {
                         <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                       </svg>
                     </button>
-                    
-                    <button 
+
+                    <button
                       onClick={(e) => handleAddToCart(e, product)}
                       className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
                       aria-label="Add to cart"
@@ -319,11 +293,11 @@ export default function ProductsPage() {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between border border-t-0 border-gray-200 p-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 truncate" title={product.name.trim()}>
-                      {product.name.trim().slice(0, 20)}...
+                    <h3 className="text-sm font-medium text-gray-900 truncate" title={product.title}>
+                      {product.title.slice(0, 30)}...
                     </h3>
                     <div className="mt-3 flex items-center">
                       <div className="flex items-center">
@@ -331,10 +305,10 @@ export default function ProductsPage() {
                           <Star
                             key={rating}
                             className={`h-4 w-4 flex-shrink-0 ${
-                              rating < Math.floor(product.rating || 0) ? 'text-yellow-400' : 'text-gray-200'
+                              rating < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-200'
                             }`}
                             aria-hidden="true"
-                            fill={rating < Math.floor(product.rating || 0) ? 'currentColor' : 'none'}
+                            fill={rating < Math.floor(product.rating) ? 'currentColor' : 'none'}
                           />
                         ))}
                       </div>
@@ -346,11 +320,11 @@ export default function ProductsPage() {
                   <div className="text-right">
                     {product.originalPrice ? (
                       <>
-                        <p className="text-lg font-medium text-[var(--color-primary)]">${product.price.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500 line-through">${product.originalPrice.toFixed(2)}</p>
+                        <p className="text-lg font-medium text-[var(--color-primary)]">${formatPrice(product.price)}</p>
+                        <p className="text-xs text-gray-500 line-through">${formatPrice(product.originalPrice)}</p>
                       </>
                     ) : (
-                      <p className="text-lg font-medium text-[var(--color-primary)]">${product.price.toFixed(2)}</p>
+                      <p className="text-lg font-medium text-[var(--color-primary)]">${formatPrice(product.price)}</p>
                     )}
                   </div>
                 </div>
@@ -377,30 +351,31 @@ export default function ProductsPage() {
       </div>
 
       {/* Pagination and Results Info */}
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Items per page selector */}
-          <div className="flex items-center space-x-2">
-            <label htmlFor="itemsPerPage" className="text-sm text-gray-700">
-              Show:
-            </label>
-            <select
-              id="itemsPerPage"
-              value={productsPerPage}
-              onChange={handleItemsPerPageChange}
-              className="block w-20 rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
-            >
-              <option value={4}>4</option>
-              <option value={8}>8</option>
-              <option value={12}>12</option>
-              <option value={24}>24</option>
-              <option value={48}>48</option>
-            </select>
-            <span className="text-sm text-gray-500">per page</span>
-          </div>
+      {totalPages > 1 && (
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Items per page selector */}
+            <div className="flex items-center space-x-2">
+              <label htmlFor="itemsPerPage" className="text-sm text-gray-700">
+                Show:
+              </label>
+              <select
+                id="itemsPerPage"
+                value={productsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="block w-20 rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
+              >
+                <option value={4}>4</option>
+                <option value={8}>8</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+              </select>
+              <span className="text-sm text-gray-500">per page</span>
+            </div>
 
-          <div className="flex items-center justify-center space-x-2">
-            {/* Results count */}
+            <div className="flex items-center justify-center space-x-2">
+              {/* Results count */}
               <div className="text-sm text-gray-700">
                 Showing <span className="font-medium">{indexOfFirstProduct + 1}</span> to{' '}
                 <span className="font-medium">
@@ -409,13 +384,12 @@ export default function ProductsPage() {
                 of <span className="font-medium">{filteredProducts.length}</span>
               </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
+              {/* Pagination */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div className="text-sm text-gray-700 sm:hidden">
                   Page {currentPage} of {totalPages}
                 </div>
-                
+
                 <nav className="flex items-center space-x-1">
                   <button
                     onClick={() => paginate(1)}
@@ -433,13 +407,12 @@ export default function ProductsPage() {
                   >
                     &lsaquo;
                   </button>
-                  
+
                   <span className="hidden sm:inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700">
                     Page {currentPage} of {totalPages}
                   </span>
-                  
+
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    // Show page numbers with ellipsis
                     let pageNum;
                     if (totalPages <= 5) {
                       pageNum = i + 1;
@@ -458,7 +431,7 @@ export default function ProductsPage() {
                         </span>
                       );
                     }
-                    
+
                     return (
                       <button
                         key={pageNum}
@@ -474,7 +447,7 @@ export default function ProductsPage() {
                       </button>
                     );
                   })}
-                  
+
                   <button
                     onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
@@ -493,13 +466,12 @@ export default function ProductsPage() {
                   </button>
                 </nav>
               </div>
-            )}
+            </div>
           </div>
-        </div> 
-      </div>
+        </div>
+      )}
 
       <TopProducts />
-      {/* Footer */}
       <Footer />
     </main>
   );
