@@ -18,6 +18,8 @@ interface Product {
   image: string;
   category: string;
   colors: string[];
+  variantId?: string;
+  merchandiseId?: string;
 }
 import Newsletter from '@/components/Newsletter';
 import Banner from '@/components/Banner';
@@ -131,7 +133,9 @@ export default function TrendingProductsPage() {
       id: product.id,
       title: product.name,
       price: product.price.toString(),
-      img: product.image
+      img: product.image,
+      merchandiseId: product.merchandiseId || product.id,
+      variantId: product.variantId || product.id
     });
   };
 

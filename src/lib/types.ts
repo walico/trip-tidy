@@ -1,40 +1,36 @@
 // Shopify Product Types
+export interface Money {
+  amount: string;
+  currencyCode: string;
+}
+
+export interface ShopifyImage {
+  url: string;
+  altText?: string;
+}
+
 export interface ShopifyProduct {
   id: string;
   title: string;
-  description: string;
   handle: string;
+  description: string;
   priceRange: {
-    minVariantPrice: {
-      amount: string;
-      currencyCode: string;
-    };
-    maxVariantPrice: {
-      amount: string;
-      currencyCode: string;
-    };
-  };
-  images: {
-    edges: Array<{
-      node: {
-        url: string;
-        altText: string | null;
-      };
-    }>;
+    minVariantPrice: Money;
+    maxVariantPrice: Money;
   };
   variants: {
     edges: Array<{
       node: {
         id: string;
-        price: {
-          amount: string;
-          currencyCode: string;
-        };
-        compareAtPrice: {
-          amount: string;
-          currencyCode: string;
-        } | null;
+        title: string;
+        price: Money;
+        compareAtPrice?: Money;
       };
+    }>;
+  };
+  images: {
+    edges: Array<{
+      node: ShopifyImage;
     }>;
   };
 }
@@ -58,34 +54,27 @@ export interface ShopifyCartItem {
   merchandise: {
     id: string;
     title: string;
-    price: {
-      amount: string;
-      currencyCode: string;
-    };
-    image: {
-      url: string;
-      altText: string | null;
-    } | null;
+    priceV2: Money;
     product: {
       id: string;
       title: string;
       handle: string;
+      images: {
+        edges: Array<{
+          node: ShopifyImage;
+        }>;
+      };
     };
   };
 }
 
 export interface ShopifyCart {
   id: string;
+  checkoutUrl: string;
   totalQuantity: number;
   cost: {
-    subtotalAmount: {
-      amount: string;
-      currencyCode: string;
-    };
-    totalAmount: {
-      amount: string;
-      currencyCode: string;
-    };
+    subtotalAmount: Money;
+    totalAmount: Money;
   };
   lines: {
     edges: Array<{
@@ -105,6 +94,7 @@ export interface Product {
   reviewCount?: number;
   handle: string;
   variantId: string;
+  merchandiseId: string; // Shopify merchandise ID for cart operations
 }
 
 // Simplified Collection type for our components

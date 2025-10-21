@@ -1,10 +1,50 @@
 import { createStorefrontApiClient } from '@shopify/storefront-api-client';
 
+// Debug log environment variables
+const shopifyConfig = {
+  storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN,
+  hasAccessToken: !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+  apiVersion: '2025-01'
+};
+
+// Log configuration
+console.log('=== Shopify Configuration ===');
+console.log('Store Domain:', shopifyConfig.storeDomain || 'Not set');
+console.log('Access Token:', shopifyConfig.hasAccessToken ? 'Set' : 'Not set');
+console.log('API Version:', shopifyConfig.apiVersion);
+
+// Create the Shopify client
 export const shopifyClient = createStorefrontApiClient({
-  storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN!,
+  storeDomain: shopifyConfig.storeDomain!,
   publicAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-  apiVersion: '2025-01', // Updated to current supported API version
+  apiVersion: shopifyConfig.apiVersion,
 });
+
+// Export function to log configuration
+export function logShopifyConfig() {
+  console.log('=== Shopify Configuration ===');
+  console.log('Store Domain:', shopifyConfig.storeDomain || 'Not set');
+  console.log('Access Token:', shopifyConfig.hasAccessToken ? 'Set' : 'Not set');
+  console.log('API Version:', shopifyConfig.apiVersion);
+  
+  // Verify environment variables are set
+  if (!shopifyConfig.storeDomain || !shopifyConfig.hasAccessToken) {
+    console.error('❌ Missing required Shopify environment variables');
+    console.error('Please ensure you have set:');
+    console.error('- NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN');
+    console.error('- NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN');
+    return false;
+  }
+  
+  console.log('✅ Shopify configuration is valid');
+  return true;
+}
+
+// Check if Shopify is properly configured
+export const isShopifyConfigured = () => {
+  return !!(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN && 
+            process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN);
+};
 
 export const PRODUCT_FIELDS = `
   fragment ProductFields on Product {

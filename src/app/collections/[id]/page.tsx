@@ -20,6 +20,8 @@ interface Product {
   reviewCount: number;
   image: string;
   handle: string;
+  variantId: string;
+  merchandiseId: string;
 }
 
 interface Collection {
@@ -52,6 +54,25 @@ function CollectionDetailContent({ id }: { id: string }) {
         const collectionData = data.collection;
         const products = collectionData.products.edges.map((edge: any) => {
           const product = edge.node;
+          const firstVariant = product.variants?.edges?.[0]?.node;
+
+          console.log('Collection product data:', {
+            productId: product.id,
+            firstVariant: firstVariant,
+            variantsCount: product.variants?.edges?.length || 0
+          });
+
+          // Ensure we have a valid Shopify variant ID
+          let variantId = firstVariant?.id;
+          let merchandiseId = firstVariant?.id;
+
+          // If no variant ID, use product ID as fallback (for debugging)
+          if (!variantId || !variantId.startsWith('gid://shopify/')) {
+            console.warn('No valid variant ID found, using product ID as fallback');
+            variantId = product.id;
+            merchandiseId = product.id;
+          }
+
           return {
             id: product.id,
             title: product.title,
@@ -61,6 +82,8 @@ function CollectionDetailContent({ id }: { id: string }) {
             reviewCount: 0, // Default review count
             image: getProductImage(product),
             handle: product.handle,
+            variantId: variantId,
+            merchandiseId: merchandiseId,
           };
         });
 
@@ -90,7 +113,9 @@ function CollectionDetailContent({ id }: { id: string }) {
       id: product.id,
       title: product.title,
       price: product.price,
-      img: product.image
+      img: product.image,
+      merchandiseId: product.merchandiseId,
+      variantId: product.variantId
     });
   };
 

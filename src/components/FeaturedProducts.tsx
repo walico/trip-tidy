@@ -24,23 +24,26 @@ export default function FeaturedProducts() {
 
         const formattedProducts = data.data.edges.map((edge: any) => {
           const product = edge.node;
+          // Get the first variant's full GID or fall back to product GID
+          const variantId = product.variants?.edges?.[0]?.node?.id || product.id;
+          
           return {
-            id: product.id.split('/').pop(),
+            id: product.id,
             title: product.title,
             price: getProductPrice(product),
             originalPrice: getProductOriginalPrice(product),
             img: getProductImage(product),
             handle: product.handle,
-            variantId: product.variants?.edges?.[0]?.node?.id || product.id,
-            rating: 4.5, // Default rating, can be fetched from reviews
-            reviewCount: 0 // Default, can be fetched from reviews
+            variantId, // This is now the full Shopify GID
+            rating: 4.5,
+            reviewCount: 0
           };
         });
 
         setProducts(formattedProducts);
       } catch (err) {
         console.error('Error fetching products:', err);
-        setError('Failed to load products. Please try again later.');
+        setError('Failed to load products');
       } finally {
         setLoading(false);
       }
@@ -110,30 +113,47 @@ function ProductCard({ product }: { product: Product }) {
     e.stopPropagation();
 
     try {
+      const cartItem = {
+        id: product.variantId, // This should be the full Shopify GID
+        quantity: 1
+      };
+
+      console.debug('Adding to cart:', {
+        cartItem,
+        product: {
+          id: product.id,
+          variantId: product.variantId
+        }
+      });
+
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          merchandiseId: product.variantId,
-          quantity: 1,
+          items: [cartItem]
         }),
       });
 
+      const result = await response.json();
+      console.debug('Cart API response:', result);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add to cart');
+        throw new Error(
+          result.error || 'Failed to add to cart' + 
+          (result.details ? `: ${JSON.stringify(result.details)}` : '')
+        );
       }
 
-      const result = await response.json();
-      console.log('Cart updated:', result);
-
-      // Show success feedback (you can add a toast here)
-      alert(`${product.title} added to cart!`);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert(`Failed to add ${product.title} to cart. Please try again.`);
+      if (result.cart?.checkoutUrl) {
+        window.open(result.cart.checkoutUrl, '_blank');
+      } else {
+        alert(`${product.title} added to cart!`);
+      }
+    } catch (err: any) {
+      console.error('Error adding to cart:', err);
+      alert(`Failed to add ${product.title} to cart: ${err.message}`);
     }
   };
 

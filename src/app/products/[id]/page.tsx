@@ -11,6 +11,8 @@ interface Product {
   handle: string;
   description: string;
   images: string[];
+  variantId: string;
+  merchandiseId: string;
 }
 
 // GraphQL query function
@@ -23,6 +25,24 @@ async function fetchProduct(handle: string): Promise<Product | null> {
     }
 
     const product = data.product;
+    const firstVariant = product.variants?.edges?.[0]?.node;
+
+    console.log('Product data:', {
+      productId: product.id,
+      firstVariant: firstVariant,
+      variantsCount: product.variants?.edges?.length || 0
+    });
+
+    // Ensure we have a valid Shopify variant ID
+    let variantId = firstVariant?.id;
+    let merchandiseId = firstVariant?.id;
+
+    // If no variant ID, use product ID as fallback (for debugging)
+    if (!variantId || !variantId.startsWith('gid://shopify/')) {
+      console.warn('No valid variant ID found, using product ID as fallback');
+      variantId = product.id;
+      merchandiseId = product.id;
+    }
 
     return {
       id: product.id,
@@ -32,6 +52,8 @@ async function fetchProduct(handle: string): Promise<Product | null> {
       handle: product.handle,
       description: product.description,
       images: getProductImages(product),
+      variantId: variantId,
+      merchandiseId: merchandiseId,
     };
   } catch (error) {
     console.error('Error fetching product:', error);
