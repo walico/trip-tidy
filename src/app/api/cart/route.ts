@@ -81,12 +81,20 @@ interface ShopifyCartAddResponse {
         field: string;
         message: string;
       }>;
+      warnings?: Array<{
+        field: string;
+        message: string;
+      }>;
     };
   };
 }
 
 // Core cart operations
 async function createCart(lines: { merchandiseId: string; quantity: number }[] = []): Promise<ShopifyCart> {
+  if (!shopifyClient) {
+    throw new CartError('Shopify client not configured', 500);
+  }
+
   try {
     console.debug('Creating cart with lines:', JSON.stringify(lines, null, 2));
 
@@ -94,7 +102,50 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
       mutation CreateCart($input: CartInput!) {
         cartCreate(input: $input) {
           cart {
-            ...CartFields
+            id
+            checkoutUrl
+            totalQuantity
+            cost {
+              subtotalAmount {
+                amount
+                currencyCode
+              }
+              totalAmount {
+                amount
+                currencyCode
+              }
+            }
+            lines(first: 100) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      priceV2 {
+                        amount
+                        currencyCode
+                      }
+                      product {
+                        id
+                        title
+                        handle
+                        images(first: 1) {
+                          edges {
+                            node {
+                              url
+                              altText
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
           userErrors {
             field
@@ -102,7 +153,6 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
           }
         }
       }
-      ${cartFragment}
     `;
 
     const variables = {
@@ -116,8 +166,20 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
 
     console.debug('Sending mutation with variables:', JSON.stringify(variables, null, 2));
 
-    const response = await shopifyClient.request<ShopifyCartCreateResponse>(mutation, variables);
+    const response = await (shopifyClient as any).request(mutation, {
+      variables,
+    });
+
     console.debug('Received response:', JSON.stringify(response, null, 2));
+
+    // Check if response is empty or invalid
+    if (!response) {
+      throw new CartError('Empty response from Shopify', 500);
+    }
+
+    if (typeof response !== 'object') {
+      throw new CartError('Invalid response format from Shopify', 500, { response });
+    }
 
     if (!response.data?.cartCreate) {
       throw new CartError('Invalid response from Shopify', 500, { response });
@@ -137,7 +199,9 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
       error: err,
       lines,
       message: err.message,
-      details: err.details
+      details: err.details,
+      response: err.response,
+      status: err.status
     });
     throw new CartError(
       'Failed to create cart: ' + (err.message || 'Unknown error'),
@@ -148,37 +212,91 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
 }
 
 async function addToCart(cartId: string, lines: { merchandiseId: string; quantity: number }[]): Promise<ShopifyCart> {
+  if (!shopifyClient) {
+    throw new CartError('Shopify client not configured', 500);
+  }
+
   try {
-    const response = await shopifyClient.request<ShopifyCartAddResponse>(`
+    const response = await (shopifyClient as any).request(`
       mutation AddToCart($cartId: ID!, $lines: [CartLineInput!]!) {
         cartLinesAdd(cartId: $cartId, lines: $lines) {
           cart {
-            ...CartFields
+            id
+            checkoutUrl
+            totalQuantity
+            cost {
+              subtotalAmount {
+                amount
+                currencyCode
+              }
+              totalAmount {
+                amount
+                currencyCode
+              }
+            }
+            lines(first: 100) {
+              edges {
+                node {
+                  id
+                  quantity
+                  merchandise {
+                    ... on ProductVariant {
+                      id
+                      title
+                      priceV2 {
+                        amount
+                        currencyCode
+                      }
+                      product {
+                        id
+                        title
+                        handle
+                        images(first: 1) {
+                          edges {
+                            node {
+                              url
+                              altText
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
           userErrors {
             field
             message
           }
+          warnings {
+            field
+            message
+          }
         }
       }
-      ${cartFragment}
     `, { cartId, lines });
 
-    if (!response.data?.cartLinesAdd) {
-      throw new CartError('Invalid response from Shopify', 500, { response });
-    }
-
-    if (response.data.cartLinesAdd.userErrors?.length > 0) {
+    if (response.data?.cartLinesAdd?.userErrors?.length > 0) {
       throw new CartError('Failed to add items', 400, response.data.cartLinesAdd.userErrors);
     }
 
-    if (!response.data.cartLinesAdd.cart) {
+    if (!response.data?.cartLinesAdd?.cart) {
       throw new CartError('No cart returned', 500, { response });
     }
 
     return response.data.cartLinesAdd.cart;
   } catch (err: any) {
-    console.error('Add to cart error:', err);
+    console.error('Add to cart error:', {
+      error: err,
+      cartId,
+      lines,
+      message: err.message,
+      details: err.details,
+      response: err.response,
+      status: err.status
+    });
     throw new CartError('Failed to add items', 500, err);
   }
 }
@@ -186,6 +304,10 @@ async function addToCart(cartId: string, lines: { merchandiseId: string; quantit
 // API Routes
 export async function POST(request: Request) {
   if (!isShopifyConfigured()) {
+    console.error('Shopify configuration check failed');
+    console.error('Environment variables:');
+    console.error('- NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN:', process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || 'Not set');
+    console.error('- NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN:', process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN ? 'Set' : 'Not set');
     return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500 });
   }
 
@@ -216,7 +338,8 @@ export async function POST(request: Request) {
     console.error('Cart API error:', {
       error: error,
       message: error.message,
-      details: error.details
+      details: error.details,
+      stack: error.stack
     });
     
     return NextResponse.json(

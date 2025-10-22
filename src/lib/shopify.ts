@@ -4,7 +4,7 @@ import { createStorefrontApiClient } from '@shopify/storefront-api-client';
 const shopifyConfig = {
   storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN,
   hasAccessToken: !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
-  apiVersion: '2025-01'
+  apiVersion: '2024-10' // Using a more stable API version
 };
 
 // Log configuration
@@ -13,12 +13,14 @@ console.log('Store Domain:', shopifyConfig.storeDomain || 'Not set');
 console.log('Access Token:', shopifyConfig.hasAccessToken ? 'Set' : 'Not set');
 console.log('API Version:', shopifyConfig.apiVersion);
 
-// Create the Shopify client
-export const shopifyClient = createStorefrontApiClient({
-  storeDomain: shopifyConfig.storeDomain!,
-  publicAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-  apiVersion: shopifyConfig.apiVersion,
-});
+// Create the Shopify client only if properly configured
+export const shopifyClient = shopifyConfig.storeDomain && process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN
+  ? createStorefrontApiClient({
+      storeDomain: shopifyConfig.storeDomain,
+      publicAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      apiVersion: shopifyConfig.apiVersion,
+    })
+  : null;
 
 // Export function to log configuration
 export function logShopifyConfig() {
@@ -26,6 +28,7 @@ export function logShopifyConfig() {
   console.log('Store Domain:', shopifyConfig.storeDomain || 'Not set');
   console.log('Access Token:', shopifyConfig.hasAccessToken ? 'Set' : 'Not set');
   console.log('API Version:', shopifyConfig.apiVersion);
+  console.log('Client Available:', !!shopifyClient);
   
   // Verify environment variables are set
   if (!shopifyConfig.storeDomain || !shopifyConfig.hasAccessToken) {
@@ -36,6 +39,11 @@ export function logShopifyConfig() {
     return false;
   }
   
+  if (!shopifyClient) {
+    console.error('❌ Shopify client could not be initialized');
+    return false;
+  }
+  
   console.log('✅ Shopify configuration is valid');
   return true;
 }
@@ -43,7 +51,8 @@ export function logShopifyConfig() {
 // Check if Shopify is properly configured
 export const isShopifyConfigured = () => {
   return !!(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN && 
-            process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN);
+            process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN &&
+            shopifyClient);
 };
 
 export const PRODUCT_FIELDS = `

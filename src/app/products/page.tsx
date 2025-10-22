@@ -34,7 +34,9 @@ export default function ProductsPage() {
     async function loadProducts() {
       try {
         setLoading(true);
-        const { data } = await shopifyClient.request(GET_PRODUCTS_QUERY, { variables: { first: 50 } });
+        const { data } = await (shopifyClient as any).request(GET_PRODUCTS_QUERY, {
+          variables: { first: 50 }
+        });
 
         const fetchedProducts = data.products.edges.map((edge: any) => {
           const product = edge.node;
@@ -116,11 +118,12 @@ export default function ProductsPage() {
     e.stopPropagation();
     addToCart({
       id: product.id,
+      variantId: product.variantId,
+      productId: product.id, // Using product ID as productId
       title: product.title,
       price: product.price,
-      img: product.image,
-      merchandiseId: product.merchandiseId,
-      variantId: product.variantId
+      image: product.image, // Changed from 'img' to 'image'
+      merchandiseId: product.merchandiseId
     });
   };
 

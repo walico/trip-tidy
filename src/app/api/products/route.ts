@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { shopifyClient, PRODUCT_FIELDS } from '@/lib/shopify';
 
 export async function GET(request: NextRequest) {
+  if (!shopifyClient) {
+    return NextResponse.json({ error: 'Shopify client not configured' }, { status: 500 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const collection = searchParams.get('collection');
@@ -60,7 +64,7 @@ export async function GET(request: NextRequest) {
       `;
     }
 
-    const response = await shopifyClient.request(query, {
+    const response = await (shopifyClient as any).request(query, {
       variables,
     });
 
