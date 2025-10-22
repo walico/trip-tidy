@@ -9,7 +9,7 @@ interface CartProps {
 }
 
 export default function Cart({ onClose }: CartProps) {
-  const { items, removeFromCart, updateQuantity, itemCount } = useCart();
+  const { items, removeFromCart, updateQuantity, itemCount, checkoutUrl } = useCart();
   const subtotal: number = items.reduce((sum: number, item) => {
     const price: number = parseFloat(item.price.replace(/[^0-9.-]+/g, ''));
     return sum + (price * item.quantity);
@@ -70,7 +70,7 @@ export default function Cart({ onClose }: CartProps) {
             {/* Product Image */}
             <div className="relative w-20 h-20 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
               <Image
-                src={item.img}
+                src={item.image}
                 alt={item.title}
                 fill
                 className="object-cover"
@@ -89,7 +89,7 @@ export default function Cart({ onClose }: CartProps) {
               <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeFromCart(item.id);
+                    removeFromCart(item.variantId);
                   }}
                   className="text-gray-400 hover:text-red-500 transition-colors p-1  -mr-2"
                   aria-label="Remove item"
@@ -111,7 +111,7 @@ export default function Cart({ onClose }: CartProps) {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      updateQuantity(item.id, Math.max(1, item.quantity - 1));
+                      updateQuantity(item.variantId, Math.max(1, item.quantity - 1));
                     }}
                     className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
                     aria-label="Decrease quantity"
@@ -126,7 +126,7 @@ export default function Cart({ onClose }: CartProps) {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      updateQuantity(item.id, item.quantity + 1);
+                      updateQuantity(item.variantId, item.quantity + 1);
                     }}
                     className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
                     aria-label="Increase quantity"
@@ -160,16 +160,31 @@ export default function Cart({ onClose }: CartProps) {
         </div>
         
         <div className="mt-6">
-          <Link
-            href="/checkout"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-full bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
-            </svg>
-            Proceed to Checkout
-          </Link>
+          {checkoutUrl ? (
+            <a
+              href={checkoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-full bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+              </svg>
+              Proceed to Checkout
+            </a>
+          ) : (
+            <Link
+              href="/checkout"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-full bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+              </svg>
+              Proceed to Checkout
+            </Link>
+          )}
           
           <div className="mt-4 text-center">
             <Link 

@@ -24,8 +24,9 @@ interface Product {
 }
 
 export default function ProductsPage() {
-  const { addToCart } = useCart();
+  const { addToCart, addMultipleToCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +128,36 @@ export default function ProductsPage() {
     });
   };
 
+  // Handle selecting products for bulk add
+  const handleProductSelect = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productId]);
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId));
+    }
+  };
+
+  // Handle bulk add to cart
+  const handleBulkAddToCart = () => {
+    if (selectedProducts.length === 0) return;
+
+    const productsToAdd = products.filter(product =>
+      selectedProducts.includes(product.id)
+    );
+
+    addMultipleToCart(productsToAdd.map(product => ({
+      id: product.id,
+      variantId: product.variantId,
+      productId: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.image,
+      merchandiseId: product.merchandiseId
+    })));
+
+    setSelectedProducts([]); // Clear selection after adding
+  };
+
   // Change page
   const paginate = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -217,6 +248,16 @@ export default function ProductsPage() {
               />
             </div>
 
+            {/* Bulk Add Button */}
+            {selectedProducts.length > 0 && (
+              <button
+                onClick={handleBulkAddToCart}
+                className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              >
+                Add {selectedProducts.length} Selected
+              </button>
+            )}
+
             {/* Mobile filter button */}
             <button
               type="button"
@@ -239,44 +280,44 @@ export default function ProductsPage() {
               <option value="rating">Top Rated</option>
             </select>
           </div>
-        </div>
 
-        {/* Mobile filter panel */}
-        {showFilters && (
-          <div className="mt-4 rounded-lg bg-white p-4 shadow md:hidden">
-            <h3 className="mb-3 text-sm font-medium text-gray-900">Filters</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="mb-2 text-sm font-medium text-gray-700">Price Range</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                  />
+          {/* Mobile filter panel */}
+          {showFilters && (
+            <div className="mt-4 rounded-lg bg-white p-4 shadow md:hidden">
+              <h3 className="mb-3 text-sm font-medium text-gray-900">Filters</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">Price Range</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h4 className="mb-2 text-sm font-medium text-gray-700">Colors</h4>
-                <div className="flex flex-wrap gap-2">
-                  {['Black', 'Blue', 'Green', 'Gray', 'Navy', 'Olive'].map((color) => (
-                    <button
-                      key={color}
-                      className="h-6 w-6 rounded-full border border-gray-200"
-                      style={{ backgroundColor: color.toLowerCase() }}
-                      aria-label={`Filter by ${color}`}
-                    ></button>
-                  ))}
+                <div>
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">Colors</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {['Black', 'Blue', 'Green', 'Gray', 'Navy', 'Olive'].map((color) => (
+                      <button
+                        key={color}
+                        className="h-6 w-6 rounded-full border border-gray-200"
+                        style={{ backgroundColor: color.toLowerCase() }}
+                        aria-label={`Filter by ${color}`}
+                      ></button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Product Grid */}

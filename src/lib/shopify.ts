@@ -4,7 +4,7 @@ import { createStorefrontApiClient } from '@shopify/storefront-api-client';
 const shopifyConfig = {
   storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN,
   hasAccessToken: !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
-  apiVersion: '2024-10' // Using a more stable API version
+  apiVersion: '2025-01' // Using a more stable API version
 };
 
 // Log configuration

@@ -45,7 +45,9 @@ export default function TopProducts() {
     async function loadProducts() {
       try {
         setLoading(true);
-        const { data } = await shopifyClient.request(GET_PRODUCTS_QUERY, { variables: { first: 8 } });
+        const { data } = await (shopifyClient as any).request(GET_PRODUCTS_QUERY, {
+          variables: { first: 8 }
+        });
 
         const fetchedProducts = data.products.edges.map((edge: any, index: number) => {
           const product = edge.node;

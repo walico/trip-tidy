@@ -1,16 +1,24 @@
 "use client";
 
 import { useCart } from '@/contexts/CartContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { isShopifyConfigured } from '@/lib/shopify';
 
 export default function CheckoutPage() {
-  const { items, cartId, isLoading, syncWithShopify } = useCart();
+  const { items, cartId, checkoutUrl, isLoading, syncWithShopify } = useCart();
   const router = useRouter();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
+
+  // Auto-redirect to Shopify checkout if we have the checkout URL
+  useEffect(() => {
+    if (checkoutUrl) {
+      console.log('Redirecting to Shopify checkout:', checkoutUrl);
+      window.location.href = checkoutUrl;
+    }
+  }, [checkoutUrl]);
 
   const subtotal = items.reduce((sum, item) => {
     const price = parseFloat(item.price.replace('$', ''));

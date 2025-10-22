@@ -35,18 +35,17 @@ const NavBar = () => {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const cartRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { itemCount } = useCart();
+  const { itemCount, isCartOpen, openCart, closeCart } = useCart();
 
   // Close cart and menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (cartRef.current && !cartRef.current.contains(event.target as Node)) {
-        setIsCartOpen(false);
+        closeCart();
       }
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
@@ -72,9 +71,12 @@ const NavBar = () => {
   const toggleCart = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const newState = !isCartOpen;
-    setIsCartOpen(newState);
-    document.body.classList.toggle('cart-open', newState);
+    if (isCartOpen) {
+      closeCart();
+    } else {
+      openCart();
+    }
+    document.body.classList.toggle('cart-open', !isCartOpen);
   };
 
   const isActive = (href: string) => {
@@ -149,7 +151,11 @@ const NavBar = () => {
             className="relative text-gray-700 hover:text-gray-900"
             onClick={(e) => {
               e.preventDefault();
-              setIsCartOpen(!isCartOpen);
+              if (isCartOpen) {
+                closeCart();
+              } else {
+                openCart();
+              }
               closeMenu();
             }}
             aria-label="Cart"
@@ -233,7 +239,7 @@ const NavBar = () => {
                   onTouchEnd={(e) => e.stopPropagation()}
                 >
                   <div className="h-full bg-white lg:max-h-[90vh] lg:rounded-lg flex flex-col">
-                    <Cart onClose={() => setIsCartOpen(false)} />
+                    <Cart onClose={closeCart} />
                   </div>
                 </div>
               )}
