@@ -213,20 +213,34 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
 
 // API Routes
 export async function POST(request: Request) {
+  // Ensure we always return JSON, never HTML
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
   if (!isShopifyConfigured()) {
     console.error('Shopify configuration check failed');
     console.error('Environment variables:');
     console.error('- NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN:', process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || 'Not set');
     console.error('- NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN:', process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN ? 'Set' : 'Not set');
-    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500, headers });
   }
 
   try {
-    const body = await request.json();
-    console.debug('POST /api/cart received:', JSON.stringify(body, null, 2));
+    let body;
+    try {
+      body = await request.json();
+      console.debug('POST /api/cart received:', JSON.stringify(body, null, 2));
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid request body format' },
+        { status: 400, headers }
+      );
+    }
 
     if (!body.items?.length) {
-      return NextResponse.json({ error: 'No items provided' }, { status: 400 });
+      return NextResponse.json({ error: 'No items provided' }, { status: 400, headers });
     }
 
     const lines = body.items.map((item: any) => ({
@@ -307,7 +321,7 @@ export async function POST(request: Request) {
       cart = await createCart(lines);
     }
 
-    return NextResponse.json({ success: true, cart });
+    return NextResponse.json({ success: true, cart }, { headers });
   } catch (error: any) {
     console.error('Cart API error:', {
       error: error,
@@ -316,20 +330,23 @@ export async function POST(request: Request) {
       stack: error.stack
     });
 
+    // Always return JSON, never HTML
     return NextResponse.json(
       {
         success: false,
         error: error.message || 'Cart operation failed',
         details: error.details || error
       },
-      { status: error.status || 500 }
+      { status: error.status || 500, headers }
     );
   }
 }
 
 export async function GET(request: Request) {
+  const headers = { 'Content-Type': 'application/json' };
+
   if (!isShopifyConfigured()) {
-    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500, headers });
   }
 
   try {
@@ -340,7 +357,7 @@ export async function GET(request: Request) {
 
     if (!cartId) {
       console.debug('No cartId provided, returning error');
-      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400, headers });
     }
 
     console.debug('GET /api/cart - Fetching cart:', cartId);
@@ -363,7 +380,7 @@ export async function GET(request: Request) {
     }
 
     console.debug('Cart found successfully:', response.data.cart.id);
-    return NextResponse.json({ success: true, cart: response.data.cart });
+    return NextResponse.json({ success: true, cart: response.data.cart }, { headers });
   } catch (error: any) {
     console.error('Cart GET error:', error);
     return NextResponse.json(
@@ -372,26 +389,37 @@ export async function GET(request: Request) {
         error: error.message || 'Failed to fetch cart',
         details: error.details || error
       },
-      { status: error.status || 500 }
+      { status: error.status || 500, headers }
     );
   }
 }
 
 export async function PUT(request: Request) {
+  const headers = { 'Content-Type': 'application/json' };
+
   if (!isShopifyConfigured()) {
-    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500, headers });
   }
 
   try {
-    const body = await request.json();
-    console.debug('PUT /api/cart received:', JSON.stringify(body, null, 2));
+    let body;
+    try {
+      body = await request.json();
+      console.debug('PUT /api/cart received:', JSON.stringify(body, null, 2));
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid request body format' },
+        { status: 400, headers }
+      );
+    }
 
     if (!body.cartId) {
-      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400, headers });
     }
 
     if (!body.items?.length) {
-      return NextResponse.json({ error: 'No items provided' }, { status: 400 });
+      return NextResponse.json({ error: 'No items provided' }, { status: 400, headers });
     }
 
     // Update cart lines - need to find line IDs first
@@ -469,7 +497,7 @@ export async function PUT(request: Request) {
       throw new CartError('No cart returned', 500, { response });
     }
 
-    return NextResponse.json({ success: true, cart: response.data.cartLinesUpdate.cart });
+    return NextResponse.json({ success: true, cart: response.data.cartLinesUpdate.cart }, { headers });
   } catch (error: any) {
     console.error('Cart PUT error:', error);
     return NextResponse.json(
@@ -478,14 +506,16 @@ export async function PUT(request: Request) {
         error: error.message || 'Failed to update cart',
         details: error.details || error
       },
-      { status: error.status || 500 }
+      { status: error.status || 500, headers }
     );
   }
 }
 
 export async function DELETE(request: Request) {
+  const headers = { 'Content-Type': 'application/json' };
+
   if (!isShopifyConfigured()) {
-    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'Shopify is not configured' }, { status: 500, headers });
   }
 
   try {
@@ -494,7 +524,7 @@ export async function DELETE(request: Request) {
     const variantId = searchParams.get('variantId');
 
     if (!cartId) {
-      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Cart ID is required' }, { status: 400, headers });
     }
 
     console.debug('DELETE /api/cart - Removing from cart:', { cartId, variantId });
@@ -601,7 +631,7 @@ export async function DELETE(request: Request) {
       cart = response.data.cartLinesRemove.cart;
     }
 
-    return NextResponse.json({ success: true, cart });
+    return NextResponse.json({ success: true, cart }, { headers });
   } catch (error: any) {
     console.error('Cart DELETE error:', error);
     return NextResponse.json(
@@ -610,7 +640,7 @@ export async function DELETE(request: Request) {
         error: error.message || 'Failed to delete from cart',
         details: error.details || error
       },
-      { status: error.status || 500 }
+      { status: error.status || 500, headers }
     );
   }
 }

@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
+    "dev:turbo": "next dev --turbopack",
     "build": "next build --turbopack --no-lint",
     "start": "next start",
-    "lint": "eslint --max-warnings 0"
+    "lint": "eslint --max-warnings 0",
+    "clean": "rm -rf .next node_modules package-lock.json && npm install"
   },
   "dependencies": {
     "@shopify/storefront-api-client": "^1.0.9",

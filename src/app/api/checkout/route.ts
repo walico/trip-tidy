@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { shopifyClient } from '@/lib/shopify';
+import { shopifyClient, isShopifyConfigured } from '@/lib/shopify';
 
 export async function POST(request: NextRequest) {
+  // Check if Shopify is properly configured
+  if (!isShopifyConfigured()) {
+    return NextResponse.json(
+      { success: false, error: 'Shopify is not configured' },
+      { status: 500 }
+    );
+  }
+
+  if (!shopifyClient) {
+    return NextResponse.json(
+      { success: false, error: 'Shopify client not initialized' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { cartId } = body;
@@ -38,10 +53,14 @@ export async function POST(request: NextRequest) {
 
     const response = await shopifyClient.request(query, { variables });
 
-    if (Array.isArray(response.errors) && response.errors.length > 0) {
+    // Check for GraphQL errors
+    if (response.errors) {
       console.error('GraphQL Errors:', response.errors);
+      const errorMessage = Array.isArray(response.errors)
+        ? response.errors[0]?.message || 'Failed to create checkout'
+        : 'Failed to create checkout';
       return NextResponse.json(
-        { success: false, error: response.errors[0]?.message || 'Failed to create checkout' },
+        { success: false, error: errorMessage },
         { status: 400 }
       );
     }
