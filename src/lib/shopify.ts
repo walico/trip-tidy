@@ -7,12 +7,6 @@ const shopifyConfig = {
   apiVersion: '2025-01' // Using a more stable API version
 };
 
-// Log configuration
-console.log('=== Shopify Configuration ===');
-console.log('Store Domain:', shopifyConfig.storeDomain || 'Not set');
-console.log('Access Token:', shopifyConfig.hasAccessToken ? 'Set' : 'Not set');
-console.log('API Version:', shopifyConfig.apiVersion);
-
 // Create the Shopify client only if properly configured
 export const shopifyClient = shopifyConfig.storeDomain && process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN
   ? createStorefrontApiClient({
@@ -24,23 +18,13 @@ export const shopifyClient = shopifyConfig.storeDomain && process.env.NEXT_PUBLI
 
 // Export function to log configuration
 export function logShopifyConfig() {
-  console.log('=== Shopify Configuration ===');
-  console.log('Store Domain:', shopifyConfig.storeDomain || 'Not set');
-  console.log('Access Token:', shopifyConfig.hasAccessToken ? 'Set' : 'Not set');
-  console.log('API Version:', shopifyConfig.apiVersion);
-  console.log('Client Available:', !!shopifyClient);
   
   // Verify environment variables are set
   if (!shopifyConfig.storeDomain || !shopifyConfig.hasAccessToken) {
-    console.error('❌ Missing required Shopify environment variables');
-    console.error('Please ensure you have set:');
-    console.error('- NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN');
-    console.error('- NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN');
     return false;
   }
   
   if (!shopifyClient) {
-    console.error('❌ Shopify client could not be initialized');
     return false;
   }
   
