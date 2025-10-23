@@ -33,9 +33,15 @@ export default function ProductsPage() {
   // Fetch products on mount
   useEffect(() => {
     async function loadProducts() {
+      if (!shopifyClient) {
+        setError('Shopify client not configured');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const { data } = await (shopifyClient as any).request(GET_PRODUCTS_QUERY, {
+        const { data } = await shopifyClient.request(GET_PRODUCTS_QUERY, {
           variables: { first: 50 }
         });
 

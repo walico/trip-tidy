@@ -200,11 +200,12 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                     onClick={() => {
                       addToCart({
                         id: product.id,
+                        variantId: product.variantId,
+                        productId: product.id,
                         title: product.title,
                         price: product.price,
-                        img: product.images[0],
-                        merchandiseId: product.merchandiseId,
-                        variantId: product.variantId
+                        image: product.images[0],
+                        merchandiseId: product.merchandiseId
                       });
                     }}
                     className="rounded-r-none border-r-0 py-2 text-base font-medium bg-[#1a1a1a] text-white hover:bg-[#333] transition-colors cursor-pointer"

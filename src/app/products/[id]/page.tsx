@@ -17,8 +17,13 @@ interface Product {
 
 // GraphQL query function
 async function fetchProduct(handle: string): Promise<Product | null> {
+  if (!shopifyClient) {
+    console.error('Shopify client not configured');
+    return null;
+  }
+
   try {
-    const { data } = await shopifyClient.request(GET_PRODUCT_QUERY, { variables: { handle } });
+    const { data } = await (shopifyClient as any).request(GET_PRODUCT_QUERY, { variables: { handle } });
 
     if (!data.product) {
       return null;

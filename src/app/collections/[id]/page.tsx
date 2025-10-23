@@ -42,6 +42,12 @@ function CollectionDetailContent({ id }: { id: string }) {
   // Fetch collection and products on mount
   useEffect(() => {
     async function loadCollection() {
+      if (!shopifyClient) {
+        setError('Shopify client not configured');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const { data } = await shopifyClient.request(GET_COLLECTION_QUERY, { variables: { handle: id } });
@@ -113,9 +119,10 @@ function CollectionDetailContent({ id }: { id: string }) {
       id: product.id,
       title: product.title,
       price: product.price,
-      img: product.image,
+      image: product.image,
       merchandiseId: product.merchandiseId,
-      variantId: product.variantId
+      variantId: product.variantId,
+      productId: product.id
     });
   };
 

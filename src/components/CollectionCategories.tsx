@@ -22,6 +22,10 @@ export default function CollectionCategories() {
     async function loadCollections() {
       try {
         setLoading(true);
+        if (!shopifyClient) {
+          console.warn('Shopify client not configured');
+          return;
+        }
         const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, { variables: { first: 10 } });
 
         const fetchedCollections = data.collections.edges.map((edge: any) => {

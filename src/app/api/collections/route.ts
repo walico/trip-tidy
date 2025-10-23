@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { shopifyClient, COLLECTION_FIELDS } from '@/lib/shopify';
 
 export async function GET() {
+  if (!shopifyClient) {
+    return NextResponse.json({ error: 'Shopify client not configured' }, { status: 500 });
+  }
+
   try {
     const query = `
       query getCollections($first: Int!) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 
@@ -140,56 +140,12 @@ export default function ContactPage() {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-gray-900">Email Us</h3>
-                    <p className="mt-1 text-sm text-gray-600">support@triptidy.com</p>
-                    <p className="mt-1 text-sm text-gray-600">sales@triptidy.com</p>
+                    <p className="mt-1 text-sm text-gray-600">krisicare27@gmail.com</p>
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 rounded-md bg-[var(--color-primary)/10] p-3">
-                    <Phone className="h-6 w-6 text-primary" aria-hidden="true" />
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-900">Call Us</h3>
-                    <p className="mt-1 text-sm text-gray-600">+1 (555) 123-4567</p>
-                    <p className="mt-1 text-xs text-gray-500">Mon-Fri, 9am-5pm EST</p>
-                  </div>
-                </div>
               </div>
 
-              <div className="mt-12">
-                <h3 className="text-sm font-medium text-gray-900">Follow Us</h3>
-                <div className="mt-4 flex space-x-6">
-                  {[
-                    { name: 'Facebook', href: '#' },
-                    { name: 'Instagram', href: '#' },
-                    { name: 'Twitter', href: '#' },
-                    { name: 'Pinterest', href: '#' },
-                  ].map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      className="text-gray-400 hover:text-primary"
-                    >
-                      <span className="sr-only">{item.name}</span>
-                      <div className="h-6 w-6">
-                        <svg
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                          className="h-6 w-6"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>

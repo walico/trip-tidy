@@ -26,6 +26,12 @@ export default function CollectionsPage() {
   // Fetch collections on mount
   useEffect(() => {
     async function loadCollections() {
+      if (!shopifyClient) {
+        setError('Shopify client not configured');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, { variables: { first: 20 } });

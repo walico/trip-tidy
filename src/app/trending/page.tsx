@@ -131,11 +131,12 @@ export default function TrendingProductsPage() {
     e.stopPropagation();
     addToCart({
       id: product.id,
+      variantId: product.variantId || product.id,
+      productId: product.id,
       title: product.name,
       price: product.price.toString(),
-      img: product.image,
-      merchandiseId: product.merchandiseId || product.id,
-      variantId: product.variantId || product.id
+      image: product.image,
+      merchandiseId: product.merchandiseId || product.id
     });
   };
 
