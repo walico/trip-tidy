@@ -125,7 +125,7 @@ export default function CollectionCategories() {
                 style={{ transform: `translateX(-${currentIndex * (100 / Math.min(collections.length, 7))}%)` }}
               >
                 {collections.map((collection) => (
-                  <div key={collection.id} className="w-52 flex-shrink-0">
+                  <div key={collection.id} className="w-52 shrink-0">
                     <Link
                       href={`/collections/${collection.handle}`}
                       className="group block bg-white rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"

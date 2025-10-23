@@ -108,7 +108,7 @@ export default function ContactPage() {
                 <div>
                   <button
                     type="submit"
-                    className="flex justify-end p-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)/90] cursor-pointer"
+                    className="flex justify-end p-2 bg-(--color-primary) hover:bg-[var(--color-primary)/90] cursor-pointer"
                   >
                     Send Message
                   </button>
@@ -125,8 +125,8 @@ export default function ContactPage() {
 
               <div className="mt-8 space-y-6">
                 <div className="flex items-start">
-                  <div className="flex-shrink-0 rounded-md bg-[var(--color-primary)/10] p-3">
-                    <MapPin className="h-6 w-6 text-primary" aria-hidden="true" />
+                  <div className="shrink-0 rounded-md bg-[var(--color-primary)/10] p-3">
+                    <MapPin className="h-6 w-6 text-[--color-primary]" aria-hidden="true" />
                   </div>
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-gray-900">Our Location</h3>
@@ -135,8 +135,8 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start">
-                  <div className="flex-shrink-0 rounded-md bg-[var(--color-primary)/10] p-3">
-                    <Mail className="h-6 w-6 text-primary" aria-hidden="true" />
+                  <div className="shrink-0 rounded-md bg-[var(--color-primary)/10] p-3">
+                    <Mail className="h-6 w-6 text-[--color-primary]" aria-hidden="true" />
                   </div>
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-gray-900">Email Us</h3>
