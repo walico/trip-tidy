@@ -139,7 +139,7 @@ export default function ContactPage() {
                   onChange={handleChange}
                   className="mt-2 block w-full border-0 border-b border-gray-300 py-2 bg-white text-gray-900 placeholder-gray-600"
                 >
-                  <option disabled value="" className="text-gray-500">Select an inquiry type</option>
+                  <option value="" className="text-gray-500">Select an inquiry type</option>
                   <option value="order" className="text-gray-900">Order Status</option>
                   <option value="return" className="text-gray-900">Returns & Exchanges</option>
                   <option value="shipping" className="text-gray-900">Shipping Questions</option>

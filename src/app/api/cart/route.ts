@@ -255,65 +255,102 @@ export async function POST(request: Request) {
     if (body.cartId) {
       console.debug('Adding to existing cart:', body.cartId);
 
-      // NEW APPROACH: Fetch existing cart and merge items into new cart
+      // Use cartLinesAdd mutation to add items to existing cart
       try {
-        console.debug('Fetching existing cart to merge items');
-        const existingCartResponse = await (shopifyClient as any).request(`
-          query GetCart($cartId: ID!) {
-            cart(id: $cartId) {
-              lines(first: 100) {
-                edges {
-                  node {
-                    quantity
-                    merchandise {
-                      ... on ProductVariant {
-                        id
+        const mutation = `
+          mutation AddToCart($cartId: ID!, $lines: [CartLineInput!]!) {
+            cartLinesAdd(cartId: $cartId, lines: $lines) {
+              cart {
+                id
+                checkoutUrl
+                totalQuantity
+                cost {
+                  subtotalAmount {
+                    amount
+                    currencyCode
+                  }
+                  totalAmount {
+                    amount
+                    currencyCode
+                  }
+                }
+                lines(first: 100) {
+                  edges {
+                    node {
+                      id
+                      quantity
+                      merchandise {
+                        ... on ProductVariant {
+                          id
+                          title
+                          priceV2 {
+                            amount
+                            currencyCode
+                          }
+                          product {
+                            id
+                            title
+                            handle
+                            images(first: 1) {
+                              edges {
+                                node {
+                                  url
+                                  altText
+                                }
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               }
+              userErrors {
+                field
+                message
+              }
             }
           }
-        `, { cartId: body.cartId });
+        `;
 
-        if (existingCartResponse?.data?.cart?.lines?.edges) {
-          console.debug('Found existing cart with', existingCartResponse.data.cart.lines.edges.length, 'items');
+        console.log('🔵 Attempting cartLinesAdd with:');
+        console.log('   Cart ID:', body.cartId);
+        console.log('   Lines to add:', JSON.stringify(lines, null, 2));
 
-          // Merge existing items with new items
-          const existingLines = existingCartResponse.data.cart.lines.edges.map((edge: any) => ({
-            merchandiseId: edge.node.merchandise.id,
-            quantity: edge.node.quantity
-          }));
+        const response = await (shopifyClient as any).request(mutation, {
+          variables: {
+            cartId: body.cartId,
+            lines: lines
+          }
+        });
 
-          const newLines = lines.map((line: { merchandiseId: string; quantity: number }) => ({
-            merchandiseId: line.merchandiseId,
-            quantity: line.quantity
-          }));
+        console.log('========================================');
+        console.log('cartLinesAdd FULL RESPONSE:', JSON.stringify(response, null, 2));
+        console.log('========================================');
 
-          // Combine and deduplicate lines
-          const combinedLines = [...existingLines];
-          newLines.forEach((newLine: { merchandiseId: string; quantity: number }) => {
-            const existingIndex = combinedLines.findIndex((line: { merchandiseId: string; quantity: number }) =>
-              line.merchandiseId === newLine.merchandiseId
-            );
-            if (existingIndex >= 0) {
-              combinedLines[existingIndex].quantity += newLine.quantity;
-            } else {
-              combinedLines.push(newLine);
-            }
-          });
-
-          console.debug('Creating new cart with combined items:', combinedLines.length, 'total items');
-          console.debug('Combined lines:', JSON.stringify(combinedLines, null, 2));
-
-          cart = await createCart(combinedLines);
+        if (response.data?.cartLinesAdd?.userErrors?.length > 0) {
+          console.error('❌ cartLinesAdd had errors:', response.data.cartLinesAdd.userErrors);
+          // Cart might be invalid/expired, create new cart
+          console.log('Creating new cart due to errors');
+          cart = await createCart(lines);
+        } else if (response.data?.cartLinesAdd?.cart) {
+          cart = response.data.cartLinesAdd.cart;
+          console.log('✅ Successfully added to existing cart:', cart.id);
+          console.log('Total items now:', cart.totalQuantity);
         } else {
-          console.warn('Existing cart not found, creating new cart');
+          console.error('❌ Unexpected response from cartLinesAdd, creating new cart');
+          console.error('Response was:', response);
           cart = await createCart(lines);
         }
-      } catch (fetchError) {
-        console.warn('Error fetching existing cart, creating new cart:', fetchError);
+      } catch (error) {
+        console.error('❌ EXCEPTION when adding to existing cart:', error);
+        console.error('Error details:', {
+          message: (error as any).message,
+          stack: (error as any).stack,
+          response: (error as any).response
+        });
+        console.log('Creating new cart as fallback...');
         cart = await createCart(lines);
       }
     } else {
@@ -370,7 +407,7 @@ export async function GET(request: Request) {
       }
     `;
 
-    const response = await (shopifyClient as any).request(query, { cartId });
+    const response = await (shopifyClient as any).request(query, { variables: { cartId } });
 
     console.debug('Shopify GET response:', JSON.stringify(response, null, 2));
 
@@ -446,7 +483,7 @@ export async function PUT(request: Request) {
     `;
 
     const cartResponse = await (shopifyClient as any).request(getCartQuery, {
-      cartId: body.cartId
+      variables: { cartId: body.cartId }
     });
 
     if (!cartResponse?.data?.cart?.lines?.edges) {
@@ -485,8 +522,10 @@ export async function PUT(request: Request) {
     `;
 
     const response = await (shopifyClient as any).request(mutation, {
-      cartId: body.cartId,
-      lines: lineUpdates
+      variables: {
+        cartId: body.cartId,
+        lines: lineUpdates
+      }
     });
 
     if (response.data?.cartLinesUpdate?.userErrors?.length > 0) {
@@ -527,13 +566,16 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Cart ID is required' }, { status: 400, headers });
     }
 
+    if (!variantId) {
+      return NextResponse.json({ error: 'Variant ID is required' }, { status: 400, headers });
+    }
+
     console.debug('DELETE /api/cart - Removing from cart:', { cartId, variantId });
 
     let cart: ShopifyCart;
 
-    if (variantId) {
-      // Remove specific item - need to find the line ID first
-      console.debug('Finding line ID for variant:', variantId);
+    // Remove specific item - need to find the line ID first
+    console.debug('Finding line ID for variant:', variantId);
 
       // First fetch the cart to find the line ID
       const getCartQuery = `
@@ -553,10 +595,11 @@ export async function DELETE(request: Request) {
             }
           }
         }
+      }
       `;
 
       const cartResponse = await (shopifyClient as any).request(getCartQuery, {
-        cartId: cartId
+        variables: { cartId }
       });
 
       if (!cartResponse?.data?.cart?.lines?.edges) {
@@ -587,8 +630,10 @@ export async function DELETE(request: Request) {
       `;
 
       const response = await (shopifyClient as any).request(mutation, {
-        cartId,
-        lineIds: [lineToRemove.node.id]
+        variables: {
+          cartId,
+          lineIds: [lineToRemove.node.id]
+        }
       });
 
       if (response.data?.cartLinesRemove?.userErrors?.length > 0) {
@@ -600,36 +645,6 @@ export async function DELETE(request: Request) {
       }
 
       cart = response.data.cartLinesRemove.cart;
-    } else {
-      // Clear entire cart
-      const mutation = `
-        mutation ClearCart($cartId: ID!) {
-          cartLinesRemove(cartId: $cartId, lineIds: []) {
-            cart {
-              ${cartFragment}
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `;
-
-      const response = await (shopifyClient as any).request(mutation, {
-        cartId: cartId
-      });
-
-      if (response.data?.cartLinesRemove?.userErrors?.length > 0) {
-        throw new CartError('Failed to clear cart', 400, response.data.cartLinesRemove.userErrors);
-      }
-
-      if (!response.data?.cartLinesRemove?.cart) {
-        throw new CartError('No cart returned', 500, { response });
-      }
-
-      cart = response.data.cartLinesRemove.cart;
-    }
 
     return NextResponse.json({ success: true, cart }, { headers });
   } catch (error: any) {

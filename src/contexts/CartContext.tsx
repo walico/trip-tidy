@@ -72,12 +72,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Initialize cart on mount
   useEffect(() => {
     if (!isInitialized) {
+      // Rehydrate cartId from localStorage if present
+      try {
+        const storedCartId = typeof window !== 'undefined' ? localStorage.getItem('cartId') : null;
+        if (storedCartId) {
+          setCartId(storedCartId);
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+
       // Only try to get cart if we have a cartId (from previous session)
       // If no cartId, we'll create a new cart when first item is added
       getCart();
       setIsInitialized(true);
     }
   }, [isInitialized]);
+
+  // Persist cartId changes
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      if (cartId) {
+        localStorage.setItem('cartId', cartId);
+      } else {
+        localStorage.removeItem('cartId');
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [cartId]);
 
   // Get or create cart
   const getCart = useCallback(async () => {
@@ -119,11 +143,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } else {
         console.warn('Cart fetch failed or cart not found, resetting cartId');
         setCartId(null);
+        localStorage.removeItem('cartId');
       }
     } catch (error) {
       console.error('Failed to fetch cart:', error);
       // Don't show error toast on init, as this is normal for new users
       setCartId(null);
+      localStorage.removeItem('cartId');
     } finally {
       setIsLoading(false);
     }
@@ -348,9 +374,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
 
         if (data.success) {
-          setItems((prevItems) =>
-            prevItems.filter((item) => item.variantId !== variantId)
-          );
+          // Refresh from Shopify response to avoid divergence
+          if (data.cart) {
+            setCheckoutUrl(data.cart.checkoutUrl || null);
+            setItems(
+              data.cart.lines?.edges?.map((edge: any) => ({
+                id: edge.node.id,
+                variantId: edge.node.merchandise.id,
+                productId: edge.node.merchandise.product.id,
+                title: edge.node.merchandise.product.title,
+                price: edge.node.merchandise.priceV2.amount,
+                image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
+                quantity: edge.node.quantity,
+                merchandiseId: edge.node.merchandise.id,
+              })) || []
+            );
+          } else {
+            // Fallback: filter locally
+            setItems((prevItems) => prevItems.filter((item) => item.variantId !== variantId));
+          }
           toast.success('Removed from cart');
         } else {
           throw new Error(data.error || 'Failed to remove from cart');
@@ -389,11 +431,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
 
         if (data.success) {
-          setItems((prevItems) =>
-            prevItems.map((item) =>
-              item.variantId === variantId ? { ...item, quantity } : item
-            )
-          );
+          if (data.cart) {
+            setCheckoutUrl(data.cart.checkoutUrl || null);
+            setItems(
+              data.cart.lines?.edges?.map((edge: any) => ({
+                id: edge.node.id,
+                variantId: edge.node.merchandise.id,
+                productId: edge.node.merchandise.product.id,
+                title: edge.node.merchandise.product.title,
+                price: edge.node.merchandise.priceV2.amount,
+                image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
+                quantity: edge.node.quantity,
+                merchandiseId: edge.node.merchandise.id,
+              })) || []
+            );
+          } else {
+            // Fallback: update locally
+            setItems((prevItems) =>
+              prevItems.map((item) =>
+                item.variantId === variantId ? { ...item, quantity } : item
+              )
+            );
+          }
         } else {
           throw new Error(data.error || 'Failed to update quantity');
         }
@@ -422,6 +481,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (data.success) {
         setItems([]);
         setCartId(null);
+        localStorage.removeItem('cartId'); // Clean up localStorage
         toast.success('Cart cleared');
       } else {
         throw new Error('Failed to clear cart');
