@@ -6,6 +6,7 @@ import { Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Product } from '@/lib/types';
 import { formatPrice, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
+import { useCart } from '@/contexts/CartContext';
 
 export default function FeaturedProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -108,53 +109,22 @@ export default function FeaturedProducts() {
 }
 
 function ProductCard({ product }: { product: Product }) {
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const { addToCart } = useCart();
+  
+  const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    try {
-      const cartItem = {
-        id: product.variantId, // This should be the full Shopify GID
-        quantity: 1
-      };
-
-      console.debug('Adding to cart:', {
-        cartItem,
-        product: {
-          id: product.id,
-          variantId: product.variantId
-        }
-      });
-
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: [cartItem]
-        }),
-      });
-
-      const result = await response.json();
-      console.debug('Cart API response:', result);
-
-      if (!response.ok) {
-        throw new Error(
-          result.error || 'Failed to add to cart' + 
-          (result.details ? `: ${JSON.stringify(result.details)}` : '')
-        );
-      }
-
-      if (result.cart?.checkoutUrl) {
-        window.open(result.cart.checkoutUrl, '_blank');
-      } else {
-        alert(`${product.title} added to cart!`);
-      }
-    } catch (err: any) {
-      console.error('Error adding to cart:', err);
-      alert(`Failed to add ${product.title} to cart: ${err.message}`);
-    }
+    
+    // Use the addToCart function from CartContext
+    addToCart({
+      id: product.id,
+      variantId: product.variantId,
+      productId: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.img,
+      merchandiseId: product.variantId
+    });
   };
 
   const handleAddToWishlist = (e: React.MouseEvent) => {

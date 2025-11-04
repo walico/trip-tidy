@@ -467,10 +467,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400, headers });
     }
 
-    // Update cart lines - need to find line IDs first
     console.debug('Updating cart quantities for items:', JSON.stringify(body.items, null, 2));
 
-    // First fetch the cart to find the line IDs
     const getCartQuery = `
       query GetCart($cartId: ID!) {
         cart(id: $cartId) {
@@ -490,27 +488,29 @@ export async function PUT(request: Request) {
       }
     `;
 
-    const cartResponse = await (shopifyClient as any).request(getCartQuery, {
-      variables: { cartId: body.cartId }
-    });
+    let effectiveCartId: string = body.cartId;
+    let cartLookup = await (shopifyClient as any).request(getCartQuery, { variables: { cartId: effectiveCartId } });
+    if (!cartLookup?.data?.cart && effectiveCartId.includes('?')) {
+      const withoutKey = effectiveCartId.split('?')[0];
+      console.debug('PUT /api/cart - primary lookup failed, trying without key:', withoutKey);
+      const fallback = await (shopifyClient as any).request(getCartQuery, { variables: { cartId: withoutKey } });
+      if (fallback?.data?.cart) {
+        effectiveCartId = withoutKey;
+        cartLookup = fallback;
+      }
+    }
 
-    if (!cartResponse?.data?.cart?.lines?.edges) {
+    if (!cartLookup?.data?.cart?.lines?.edges) {
       throw new CartError('Cart not found or empty', 404);
     }
 
-    // Map frontend items to line updates
     const lineUpdates = body.items.map((item: any) => {
-      const lineToUpdate = cartResponse.data.cart.lines.edges.find((edge: any) =>
-        edge.node.merchandise.id === String(item.id)
-      );
-
+      const lineToUpdate = cartLookup.data.cart.lines.edges.find((edge: any) => edge.node.merchandise.id === String(item.id));
       if (!lineToUpdate) {
         throw new CartError(`Item not found in cart: ${item.id}`, 404);
       }
-
       return {
         id: lineToUpdate.node.id,
-        merchandiseId: String(item.id),
         quantity: parseInt(String(item.quantity))
       };
     });
@@ -519,7 +519,7 @@ export async function PUT(request: Request) {
       mutation UpdateCart($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
         cartLinesUpdate(cartId: $cartId, lines: $lines) {
           cart {
-            ${cartFragment}
+            ...CartFields
           }
           userErrors {
             field
@@ -527,11 +527,12 @@ export async function PUT(request: Request) {
           }
         }
       }
+      ${cartFragment}
     `;
 
     const response = await (shopifyClient as any).request(mutation, {
       variables: {
-        cartId: body.cartId,
+        cartId: effectiveCartId,
         lines: lineUpdates
       }
     });

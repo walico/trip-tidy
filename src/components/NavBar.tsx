@@ -235,10 +235,13 @@ const NavBar = () => {
               {isCartOpen && (
                 <div 
                   className="fixed inset-0 z-40 lg:absolute lg:inset-auto lg:right-0 lg:top-full lg:mt-2 lg:w-[400px] lg:rounded-lg lg:shadow-2xl lg:border lg:border-gray-200"
-                  onClick={(e) => e.stopPropagation()}
-                  onTouchEnd={(e) => e.stopPropagation()}
+                  onClick={() => closeCart()}
                 >
-                  <div className="h-full bg-white lg:max-h-[90vh] lg:rounded-lg flex flex-col">
+                  <div 
+                    ref={cartRef}
+                    className="h-full bg-white lg:max-h-[90vh] lg:rounded-lg flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Cart onClose={closeCart} />
                   </div>
                 </div>
