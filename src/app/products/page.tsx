@@ -21,6 +21,15 @@ interface Product {
   handle: string;
   variantId: string;
   merchandiseId: string;
+  availableForSale: boolean;
+  variants: {
+    edges: Array<{
+      node: {
+        availableForSale: boolean;
+        quantityAvailable: number | null;
+      };
+    }>;
+  };
 }
 
 export default function ProductsPage() {
@@ -33,19 +42,263 @@ export default function ProductsPage() {
   // Fetch products on mount
   useEffect(() => {
     async function loadProducts() {
+      // Log Shopify configuration for debugging
+      const config = {
+        storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN,
+        hasAccessToken: !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+        apiVersion: '2025-01',
+        apiUrl: `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`
+      };
+      
+      console.log('🔧 Shopify Configuration:', {
+        ...config,
+        accessToken: config.hasAccessToken ? '***' + (process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '').slice(-4) : 'Not set'
+      });
+
       if (!shopifyClient) {
-        setError('Shopify client not configured');
+        const errorMsg = '❌ Shopify client not properly initialized. ' + 
+          (config.storeDomain ? 'Check your Storefront Access Token.' : 'Missing store domain.');
+        console.error(errorMsg);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
 
+      const startTime = Date.now();
       try {
         setLoading(true);
-        const { data } = await shopifyClient.request(GET_PRODUCTS_QUERY, {
-          variables: { first: 50 }
+        setError(null);
+        console.log('🔄 Fetching products from Shopify...');
+        
+        // Log the full query and variables for debugging
+        console.log('📝 GraphQL Query:', GET_PRODUCTS_QUERY);
+        console.log('🔧 Query Variables:', JSON.stringify({ first: 50 }, null, 2));
+        
+        // Make the request with error handling
+        let response;
+        try {
+          const requestUrl = `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`;
+          const requestHeaders = {
+            'Content-Type': 'application/json',
+            'X-Shopify-Storefront-Access-Token': process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || ''
+          };
+          
+          console.log('🚀 Sending request to:', requestUrl);
+          console.log('🔑 Using access token:', '***' + (process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '').slice(-4));
+          
+          // Make the request with a timeout
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+          try {
+            const requestStart = Date.now();
+            response = await shopifyClient.request(GET_PRODUCTS_QUERY, {
+              variables: { first: 50 },
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeout);
+            const requestDuration = Date.now() - requestStart;
+            
+            console.log(`✅ Received response in ${requestDuration}ms`);
+            
+            // Log response metadata
+            console.log('📦 Response Type:', typeof response);
+            console.log('🔑 Response Keys:', Object.keys(response || {}));
+            
+            // Create a safe copy of the response for logging
+            try {
+              const responseCopy = JSON.parse(JSON.stringify(response || {}, (key, value) => 
+                typeof value === 'bigint' ? value.toString() : value
+              ));
+              
+              console.log('📋 Response Data:', responseCopy);
+              
+              // Log GraphQL errors if present
+              if (responseCopy.errors) {
+                console.error('❌ GraphQL Errors:', responseCopy.errors);
+                throw new Error(`GraphQL Error: ${responseCopy.errors[0]?.message || 'Unknown error'}`);
+              }
+              
+              // Log data structure if available
+              if (responseCopy.data) {
+                console.log('📊 Response Data Structure:', {
+                  type: typeof responseCopy.data,
+                  keys: Object.keys(responseCopy.data || {})
+                });
+              }
+              
+            } catch (e) {
+              console.warn('⚠️ Could not fully parse response:', e);
+              // Continue processing even if we couldn't fully parse the response
+            }
+            
+          } catch (requestError) {
+            clearTimeout(timeout);
+            console.error('❌ Request failed:', requestError);
+            
+            // Handle different types of errors
+            if (requestError instanceof Error) {
+              if (requestError.name === 'AbortError') {
+                throw new Error('Request to Shopify API timed out after 15 seconds');
+              }
+              
+              // Check for network errors
+              if (requestError.message.includes('Failed to fetch')) {
+                throw new Error('Network error: Could not connect to Shopify. Check your internet connection.');
+              }
+              
+              // Check for GraphQL errors in the response
+              const gqlError = requestError as any;
+              if (gqlError.response?.errors) {
+                const firstError = gqlError.response.errors[0];
+                throw new Error(`Shopify API Error: ${firstError.message || 'Unknown error'}`);
+              }
+              
+              // Re-throw with more context
+              throw new Error(`API request failed: ${requestError.message}`);
+            }
+            
+            throw new Error('Unknown error occurred during API request');
+          }
+        } catch (error: unknown) {
+          console.error('Shopify API request failed with error:', error);
+          
+          // Enhanced error handling
+          let errorMessage = 'Failed to fetch products';
+          const errorDetails: any = { source: 'shopify-api-request' };
+          
+          // Handle different types of errors
+          if (error instanceof Error) {
+            errorDetails.name = error.name;
+            errorDetails.message = error.message;
+            
+            // Handle AbortError (timeout)
+            if (error.name === 'AbortError') {
+              errorMessage = 'Request to Shopify API timed out';
+            }
+            
+            // Handle GraphQL errors
+            const gqlError = error as any;
+            if (gqlError.response) {
+              errorDetails.response = {
+                status: gqlError.response.status,
+                statusText: gqlError.response.statusText,
+                headers: gqlError.response.headers,
+                data: gqlError.response.data
+              };
+              
+              // Extract GraphQL errors if available
+              if (gqlError.response.errors) {
+                errorDetails.graphQLErrors = gqlError.response.errors;
+                // Use the first error message if available
+                if (gqlError.response.errors[0]?.message) {
+                  errorMessage = `Shopify API Error: ${gqlError.response.errors[0].message}`;
+                }
+              }
+              
+              // Handle HTTP status codes
+              if (gqlError.response.status === 401) {
+                errorMessage = 'Authentication failed. Please check your Shopify Storefront Access Token.';
+              } else if (gqlError.response.status === 403) {
+                errorMessage = 'Access denied. Your token might not have the required permissions.';
+              } else if (gqlError.response.status === 404) {
+                errorMessage = 'Shopify store not found. Please check your store domain.';
+              }
+            }
+            
+            // Log detailed error information
+            console.error('Error details:', errorDetails);
+            
+            // If we have GraphQL errors, log them separately for better visibility
+            if (errorDetails.graphQLErrors) {
+              console.error('GraphQL Errors:', errorDetails.graphQLErrors);
+            }
+            
+            throw new Error(errorMessage);
+          }
+          
+          // Fallback for non-Error objects
+          console.error('Unknown error type:', error);
+          throw new Error(`${errorMessage}: Unknown error occurred`);
+        }
+
+        if (!response) {
+          throw new Error('No response received from Shopify');
+        }
+
+        // Handle different response formats
+        let productsData;
+        const responseData = response as any; // Type assertion to handle dynamic response
+        
+        // Debug: Log the structure of the response
+        console.log('Response data structure:', {
+          hasProducts: 'products' in responseData,
+          hasData: 'data' in responseData,
+          isArray: Array.isArray(responseData),
+          keys: Object.keys(responseData || {})
         });
 
-        const fetchedProducts = data.products.edges.map((edge: any) => {
+        // Case 1: Response is already the data we need
+        if (responseData.products) {
+          productsData = responseData.products;
+        } 
+        // Case 2: Response has a data property with products
+        else if (responseData.data?.products) {
+          productsData = responseData.data.products;
+        }
+        // Case 3: Response is the products array directly
+        else if (Array.isArray(responseData)) {
+          productsData = { edges: responseData.map((item: any) => ({ node: item })) };
+        }
+        // Case 4: Response is an object with edges
+        else if (responseData.edges) {
+          productsData = responseData;
+        }
+        // Case 5: Check if the response is the data itself (common with GraphQL)
+        else if ('products' in responseData) {
+          productsData = responseData.products;
+        }
+        // Case 6: Unknown format - log detailed info for debugging
+        else {
+          console.error('Unexpected response format from Shopify. Full response structure:', {
+            type: typeof responseData,
+            keys: Object.keys(responseData || {}),
+            responseData: responseData
+          });
+          
+          // Try to extract products using a more aggressive approach
+          const allKeys = Object.keys(responseData);
+          const possibleProductKeys = allKeys.filter(key => 
+            key.toLowerCase().includes('product') || 
+            key.toLowerCase().includes('item') ||
+            key.toLowerCase().includes('node')
+          );
+          
+          if (possibleProductKeys.length > 0) {
+            console.log('Possible product keys found:', possibleProductKeys);
+            for (const key of possibleProductKeys) {
+              const value = responseData[key];
+              if (Array.isArray(value) || (value && typeof value === 'object' && 'edges' in value)) {
+                productsData = value;
+                console.log(`Using data from key: ${key}`);
+                break;
+              }
+            }
+          }
+          
+          if (!productsData) {
+            throw new Error('Unexpected response format from Shopify. Could not locate products data.');
+          }
+        }
+
+        if (!productsData?.edges) {
+          console.error('No products found in response. Response:', response);
+          throw new Error('No products found in the response.');
+        }
+
+        console.log('Processing products data...');
+        const fetchedProducts = productsData.edges.map((edge: any) => {
           const product = edge.node;
           const firstVariant = product.variants?.edges?.[0]?.node;
 
@@ -65,7 +318,7 @@ export default function ProductsPage() {
             variantId = product.id;
             merchandiseId = product.id;
           }
-
+          
           return {
             id: product.id,
             title: product.title,
@@ -77,6 +330,8 @@ export default function ProductsPage() {
             handle: product.handle,
             variantId: variantId,
             merchandiseId: merchandiseId,
+            availableForSale: product.availableForSale,
+            variants: product.variants,
           };
         });
 
@@ -123,13 +378,19 @@ export default function ProductsPage() {
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!product.availableForSale) {
+      console.log('Product is not available for sale');
+      return;
+    }
+    
     addToCart({
       id: product.id,
       variantId: product.variantId,
-      productId: product.id, // Using product ID as productId
+      productId: product.id,
       title: product.title,
       price: product.price,
-      image: product.image, // Changed from 'img' to 'image'
+      image: product.image,
       merchandiseId: product.merchandiseId
     });
   };
@@ -341,11 +602,18 @@ export default function ProductsPage() {
                     className="h-full w-full object-cover object-center group-hover:opacity-75"
                   />
 
-                  {product.originalPrice && (
-                    <div className="absolute top-2 right-2 rounded-full bg-red-500 px-2 py-1 text-xs font-medium text-white">
-                      SALE
-                    </div>
-                  )}
+                  <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                    {!product.availableForSale && (
+                      <div className="rounded-full bg-gray-600 px-2 py-1 text-xs font-medium text-white">
+                        Out of Stock
+                      </div>
+                    )}
+                    {product.originalPrice && (
+                      <div className="rounded-full bg-red-500 px-2 py-1 text-xs font-medium text-white">
+                        SALE
+                      </div>
+                    )}
+                  </div>
 
                   <div className="absolute bottom-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
@@ -357,15 +625,27 @@ export default function ProductsPage() {
                       </svg>
                     </button>
 
-                    <button
-                      onClick={(e) => handleAddToCart(e, product)}
-                      className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
-                      aria-label="Add to cart"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                      </svg>
-                    </button>
+                    {product.availableForSale ? (
+                      <button
+                        onClick={(e) => handleAddToCart(e, product)}
+                        className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
+                        aria-label="Add to cart"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="flex items-center justify-center rounded-full bg-gray-200/90 p-2 text-gray-400 cursor-not-allowed"
+                        aria-label="Out of stock"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 

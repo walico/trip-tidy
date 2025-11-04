@@ -39,12 +39,15 @@ export const isShopifyConfigured = () => {
             shopifyClient);
 };
 
+// First, let's define a simpler version of the product fields
+// that we know should work with the Storefront API
 export const PRODUCT_FIELDS = `
   fragment ProductFields on Product {
     id
     title
     description
     handle
+    availableForSale
     priceRange {
       minVariantPrice {
         amount
@@ -55,7 +58,7 @@ export const PRODUCT_FIELDS = `
         currencyCode
       }
     }
-    images(first: 100) {
+    images(first: 10) {
       edges {
         node {
           url
@@ -63,16 +66,13 @@ export const PRODUCT_FIELDS = `
         }
       }
     }
-    variants(first: 100) {
+    variants(first: 10) {
       edges {
         node {
           id
           title
+          availableForSale
           price {
-            amount
-            currencyCode
-          }
-          compareAtPrice {
             amount
             currencyCode
           }
