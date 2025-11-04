@@ -114,7 +114,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       console.log('Fetching existing cart:', cartId);
-      const response = await fetch('/api/cart?cartId=' + cartId);
+      const response = await fetch('/api/cart?cartId=' + encodeURIComponent(cartId));
 
       if (!response.ok) {
         console.warn('Failed to fetch cart, response not ok:', response.status);
@@ -363,22 +363,52 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Remove item from cart
   const removeFromCart = useCallback(
     async (variantId: string) => {
-      if (!cartId) return;
+      if (!cartId) {
+        console.error('No cart ID available');
+        toast.error('Cart not found');
+        return;
+      }
 
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/cart?cartId=${cartId}&variantId=${variantId}`, {
+        console.log(`Removing item ${variantId} from cart ${cartId}`);
+        
+        // Prepare encoded IDs for the URL
+        const encodedCartId = encodeURIComponent(cartId);
+        const encodedVariantId = encodeURIComponent(variantId);
+        const foundLineId = items.find(i => i.variantId === variantId)?.id;
+        const encodedLineId = foundLineId ? encodeURIComponent(foundLineId) : null;
+
+        const url = encodedLineId
+          ? `/api/cart?cartId=${encodedCartId}&lineId=${encodedLineId}`
+          : `/api/cart?cartId=${encodedCartId}&variantId=${encodedVariantId}`;
+
+        const response = await fetch(url, {
           method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
         });
 
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('Remove from cart response:', data);
 
         if (data.success) {
-          // Refresh from Shopify response to avoid divergence
-          if (data.cart) {
+          // If cart is empty after removal, reset the cart
+          if (!data.cart || !data.cart.lines?.edges?.length) {
+            setItems([]);
+            setCheckoutUrl(null);
+            localStorage.removeItem('cartId');
+            setCartId(null);
+            toast.success('Cart is now empty');
+          } else {
+            // Update from Shopify response
             setCheckoutUrl(data.cart.checkoutUrl || null);
             setItems(
-              data.cart.lines?.edges?.map((edge: any) => ({
+              data.cart.lines.edges.map((edge: any) => ({
                 id: edge.node.id,
                 variantId: edge.node.merchandise.id,
                 productId: edge.node.merchandise.product.id,
@@ -387,19 +417,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
                 quantity: edge.node.quantity,
                 merchandiseId: edge.node.merchandise.id,
-              })) || []
+              }))
             );
-          } else {
-            // Fallback: filter locally
-            setItems((prevItems) => prevItems.filter((item) => item.variantId !== variantId));
+            toast.success('Item removed from cart');
           }
-          toast.success('Removed from cart');
         } else {
-          throw new Error(data.error || 'Failed to remove from cart');
+          throw new Error(data.error || 'Failed to remove item');
         }
       } catch (error) {
-        console.error('Failed to remove from cart:', error);
-        toast.error('Failed to remove from cart');
+        console.error('Error removing item from cart:', error);
+        // Fallback to local removal if the API call fails
+        setItems(prevItems => {
+          const updatedItems = prevItems.filter(item => item.variantId !== variantId);
+          if (updatedItems.length === 0) {
+            setCheckoutUrl(null);
+            localStorage.removeItem('cartId');
+            setCartId(null);
+          }
+          return updatedItems;
+        });
+        toast.error('Item removed (local update)');
       } finally {
         setIsLoading(false);
       }
@@ -472,7 +509,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/cart?cartId=${cartId}`, {
+      const response = await fetch(`/api/cart?cartId=${encodeURIComponent(cartId)}` , {
         method: 'DELETE',
       });
 

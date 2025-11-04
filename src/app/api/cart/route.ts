@@ -388,7 +388,7 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const cartId = searchParams.get('cartId');
+    const cartId = searchParams.get('cartId') ? decodeURIComponent(searchParams.get('cartId')!) : null;
 
     console.debug('GET /api/cart - Request for cartId:', cartId);
 
@@ -402,22 +402,30 @@ export async function GET(request: Request) {
     const query = `
       query GetCart($cartId: ID!) {
         cart(id: $cartId) {
-          ${cartFragment}
+          ...CartFields
         }
       }
+      ${cartFragment}
     `;
 
     const response = await (shopifyClient as any).request(query, { variables: { cartId } });
+    let fallbackResponse: any = null;
+    if (!response?.data?.cart && cartId.includes('?')) {
+      const withoutKey = cartId.split('?')[0];
+      console.debug('GET /api/cart - Primary lookup returned null, trying without key:', withoutKey);
+      fallbackResponse = await (shopifyClient as any).request(query, { variables: { cartId: withoutKey } });
+    }
 
-    console.debug('Shopify GET response:', JSON.stringify(response, null, 2));
+    const finalCart = response?.data?.cart || fallbackResponse?.data?.cart;
+    console.debug('Shopify GET response:', JSON.stringify(finalCart, null, 2));
 
-    if (!response?.data?.cart) {
+    if (!finalCart) {
       console.error('Cart not found in Shopify:', cartId);
       throw new CartError('Cart not found', 404);
     }
 
-    console.debug('Cart found successfully:', response.data.cart.id);
-    return NextResponse.json({ success: true, cart: response.data.cart }, { headers });
+    console.debug('Cart found successfully:', finalCart.id);
+    return NextResponse.json({ success: true, cart: finalCart }, { headers });
   } catch (error: any) {
     console.error('Cart GET error:', error);
     return NextResponse.json(
@@ -559,25 +567,27 @@ export async function DELETE(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const cartId = searchParams.get('cartId');
-    const variantId = searchParams.get('variantId');
+    const cartId = searchParams.get('cartId') ? decodeURIComponent(searchParams.get('cartId')!) : null;
+    const variantId = searchParams.get('variantId') ? decodeURIComponent(searchParams.get('variantId')!) : null;
+    const lineId = searchParams.get('lineId') ? decodeURIComponent(searchParams.get('lineId')!) : null;
 
     if (!cartId) {
       return NextResponse.json({ error: 'Cart ID is required' }, { status: 400, headers });
     }
 
-    if (!variantId) {
-      return NextResponse.json({ error: 'Variant ID is required' }, { status: 400, headers });
+    if (!variantId && !lineId) {
+      console.debug('No variantId or lineId provided, will clear entire cart');
     }
 
-    console.debug('DELETE /api/cart - Removing from cart:', { cartId, variantId });
+    console.debug('DELETE /api/cart - Removing from cart:', { cartId, variantId, lineId });
 
     let cart: ShopifyCart;
 
-    // Remove specific item - need to find the line ID first
-    console.debug('Finding line ID for variant:', variantId);
+    let lineIdsToRemove: string[] = [];
 
-      // First fetch the cart to find the line ID
+    if (lineId) {
+      lineIdsToRemove = [lineId];
+    } else {
       const getCartQuery = `
         query GetCart($cartId: ID!) {
           cart(id: $cartId) {
@@ -595,31 +605,38 @@ export async function DELETE(request: Request) {
             }
           }
         }
-      }
       `;
 
       const cartResponse = await (shopifyClient as any).request(getCartQuery, {
         variables: { cartId }
       });
 
-      if (!cartResponse?.data?.cart?.lines?.edges) {
+      if (!cartResponse?.data?.cart) {
         throw new CartError('Cart not found or empty', 404);
       }
 
-      // Find the line ID that matches the variant ID
-      const lineToRemove = cartResponse.data.cart.lines.edges.find((edge: any) =>
-        edge.node.merchandise.id === variantId
-      );
+      const edges = cartResponse.data.cart.lines?.edges || [];
 
-      if (!lineToRemove) {
-        throw new CartError('Item not found in cart', 404);
+      if (variantId) {
+        const lineToRemove = edges.find((edge: any) => edge.node.merchandise.id === variantId);
+        if (!lineToRemove) {
+          throw new CartError('Item not found in cart', 404);
+        }
+        lineIdsToRemove = [lineToRemove.node.id];
+      } else {
+        // Clear all
+        lineIdsToRemove = edges.map((edge: any) => edge.node.id);
+        if (lineIdsToRemove.length === 0) {
+          return NextResponse.json({ success: true, cart: cartResponse.data.cart }, { headers });
+        }
       }
+    }
 
       const mutation = `
         mutation RemoveFromCart($cartId: ID!, $lineIds: [ID!]!) {
           cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
             cart {
-              ${cartFragment}
+              ...CartFields
             }
             userErrors {
               field
@@ -627,12 +644,13 @@ export async function DELETE(request: Request) {
             }
           }
         }
+        ${cartFragment}
       `;
 
       const response = await (shopifyClient as any).request(mutation, {
         variables: {
           cartId,
-          lineIds: [lineToRemove.node.id]
+          lineIds: lineIdsToRemove
         }
       });
 
