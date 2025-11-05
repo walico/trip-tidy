@@ -7,7 +7,7 @@ import { Filter, Search, Star } from 'lucide-react';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 import { useCart } from '@/contexts/CartContext';
-import { shopifyClient, GET_PRODUCTS_QUERY, formatPrice, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
+import { shopifyClient, GET_PRODUCTS_QUERY, GET_COLLECTIONS_QUERY, formatPrice, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
 
 // Define product type
 interface Product {
@@ -30,6 +30,15 @@ interface Product {
       };
     }>;
   };
+  collections?: {
+    edges: Array<{
+      node: {
+        handle: string;
+        title?: string; // Add this if you need title as well
+      };
+    }>;
+  };
+  description?: string;
 }
 
 export default function ProductsPage() {
@@ -38,6 +47,49 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  // Fetch collections
+  useEffect(() => {
+    async function loadCollections() {
+      if (!shopifyClient) {
+        console.warn('Shopify client not initialized');
+        return;
+      }
+      
+      try {
+        const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, { 
+          variables: { first: 10 } 
+        });
+        
+        const fetchedCollections = data.collections.edges.map((edge: any) => ({
+          handle: edge.node.handle,
+          title: edge.node.title
+        }));
+        
+        setCollections(fetchedCollections);
+      } catch (err) {
+        console.error('Error fetching collections:', err);
+      }
+    }
+    
+    loadCollections();
+  }, []);
+
+  // Update product collections when products change
+  useEffect(() => {
+    const collectionsMap: Record<string, string[]> = {};
+    
+    products.forEach(product => {
+      if (product.collections?.edges) {
+        collectionsMap[product.id] = product.collections.edges.map((edge: any) => edge.node.handle);
+      } else {
+        collectionsMap[product.id] = [];
+      }
+    });
+    
+    setProductCollections(collectionsMap);
+  }, [products]);
 
   // Fetch products on mount
   useEffect(() => {
@@ -49,16 +101,10 @@ export default function ProductsPage() {
         apiVersion: '2025-01',
         apiUrl: `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`
       };
-      
-      console.log('🔧 Shopify Configuration:', {
-        ...config,
-        accessToken: config.hasAccessToken ? '***' + (process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '').slice(-4) : 'Not set'
-      });
 
       if (!shopifyClient) {
-        const errorMsg = '❌ Shopify client not properly initialized. ' + 
+        const errorMsg = 'Shopify client not properly initialized. ' + 
           (config.storeDomain ? 'Check your Storefront Access Token.' : 'Missing store domain.');
-        console.error(errorMsg);
         setError(errorMsg);
         setLoading(false);
         return;
@@ -68,258 +114,91 @@ export default function ProductsPage() {
       try {
         setLoading(true);
         setError(null);
-        console.log('🔄 Fetching products from Shopify...');
-        
-        // Log the full query and variables for debugging
-        console.log('📝 GraphQL Query:', GET_PRODUCTS_QUERY);
-        console.log('🔧 Query Variables:', JSON.stringify({ first: 50 }, null, 2));
         
         // Make the request with error handling
         let response;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
         try {
-          const requestUrl = `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`;
-          const requestHeaders = {
-            'Content-Type': 'application/json',
-            'X-Shopify-Storefront-Access-Token': process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || ''
-          };
+          response = await shopifyClient.request(GET_PRODUCTS_QUERY, {
+            variables: { first: 50 },
+            signal: controller.signal
+          });
           
-          console.log('🚀 Sending request to:', requestUrl);
-          console.log('🔑 Using access token:', '***' + (process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '').slice(-4));
+          clearTimeout(timeout);
           
-          // Make the request with a timeout
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-          try {
-            const requestStart = Date.now();
-            response = await shopifyClient.request(GET_PRODUCTS_QUERY, {
-              variables: { first: 50 },
-              signal: controller.signal
-            });
-            
-            clearTimeout(timeout);
-            const requestDuration = Date.now() - requestStart;
-            
-            console.log(`✅ Received response in ${requestDuration}ms`);
-            
-            // Log response metadata
-            console.log('📦 Response Type:', typeof response);
-            console.log('🔑 Response Keys:', Object.keys(response || {}));
-            
-            // Create a safe copy of the response for logging
-            try {
-              const responseCopy = JSON.parse(JSON.stringify(response || {}, (key, value) => 
-                typeof value === 'bigint' ? value.toString() : value
-              ));
-              
-              console.log('📋 Response Data:', responseCopy);
-              
-              // Log GraphQL errors if present
-              if (responseCopy.errors) {
-                console.error('❌ GraphQL Errors:', responseCopy.errors);
-                throw new Error(`GraphQL Error: ${responseCopy.errors[0]?.message || 'Unknown error'}`);
-              }
-              
-              // Log data structure if available
-              if (responseCopy.data) {
-                console.log('📊 Response Data Structure:', {
-                  type: typeof responseCopy.data,
-                  keys: Object.keys(responseCopy.data || {})
-                });
-              }
-              
-            } catch (e) {
-              console.warn('⚠️ Could not fully parse response:', e);
-              // Continue processing even if we couldn't fully parse the response
-            }
-            
-          } catch (requestError) {
-            clearTimeout(timeout);
-            console.error('❌ Request failed:', requestError);
-            
-            // Handle different types of errors
-            if (requestError instanceof Error) {
-              if (requestError.name === 'AbortError') {
-                throw new Error('Request to Shopify API timed out after 15 seconds');
-              }
-              
-              // Check for network errors
-              if (requestError.message.includes('Failed to fetch')) {
-                throw new Error('Network error: Could not connect to Shopify. Check your internet connection.');
-              }
-              
-              // Check for GraphQL errors in the response
-              const gqlError = requestError as any;
-              if (gqlError.response?.errors) {
-                const firstError = gqlError.response.errors[0];
-                throw new Error(`Shopify API Error: ${firstError.message || 'Unknown error'}`);
-              }
-              
-              // Re-throw with more context
-              throw new Error(`API request failed: ${requestError.message}`);
-            }
-            
-            throw new Error('Unknown error occurred during API request');
+          if (!response) {
+            throw new Error('No response received from Shopify');
           }
-        } catch (error: unknown) {
-          console.error('Shopify API request failed with error:', error);
+            
+        } catch (error: any) {
+          clearTimeout(timeout);
           
-          // Enhanced error handling
-          let errorMessage = 'Failed to fetch products';
-          const errorDetails: any = { source: 'shopify-api-request' };
-          
-          // Handle different types of errors
-          if (error instanceof Error) {
-            errorDetails.name = error.name;
-            errorDetails.message = error.message;
-            
-            // Handle AbortError (timeout)
-            if (error.name === 'AbortError') {
-              errorMessage = 'Request to Shopify API timed out';
-            }
-            
-            // Handle GraphQL errors
-            const gqlError = error as any;
-            if (gqlError.response) {
-              errorDetails.response = {
-                status: gqlError.response.status,
-                statusText: gqlError.response.statusText,
-                headers: gqlError.response.headers,
-                data: gqlError.response.data
-              };
-              
-              // Extract GraphQL errors if available
-              if (gqlError.response.errors) {
-                errorDetails.graphQLErrors = gqlError.response.errors;
-                // Use the first error message if available
-                if (gqlError.response.errors[0]?.message) {
-                  errorMessage = `Shopify API Error: ${gqlError.response.errors[0].message}`;
-                }
-              }
-              
-              // Handle HTTP status codes
-              if (gqlError.response.status === 401) {
-                errorMessage = 'Authentication failed. Please check your Shopify Storefront Access Token.';
-              } else if (gqlError.response.status === 403) {
-                errorMessage = 'Access denied. Your token might not have the required permissions.';
-              } else if (gqlError.response.status === 404) {
-                errorMessage = 'Shopify store not found. Please check your store domain.';
-              }
-            }
-            
-            // Log detailed error information
-            console.error('Error details:', errorDetails);
-            
-            // If we have GraphQL errors, log them separately for better visibility
-            if (errorDetails.graphQLErrors) {
-              console.error('GraphQL Errors:', errorDetails.graphQLErrors);
-            }
-            
-            throw new Error(errorMessage);
+          if (error.name === 'AbortError') {
+            throw new Error('Request to Shopify API timed out after 15 seconds');
           }
           
-          // Fallback for non-Error objects
-          console.error('Unknown error type:', error);
-          throw new Error(`${errorMessage}: Unknown error occurred`);
+          if (error.message.includes('Failed to fetch')) {
+            throw new Error('Network error: Could not connect to Shopify. Check your internet connection.');
+          }
+          
+          if (error.response?.errors) {
+            const firstError = error.response.errors[0];
+            throw new Error(`Shopify API Error: ${firstError.message || 'Unknown error'}`);
+          }
+          
+          throw new Error(`API request failed: ${error.message || 'Unknown error occurred'}`);
         }
 
-        if (!response) {
-          throw new Error('No response received from Shopify');
-        }
-
-        // Handle different response formats
+        // Handle response format
         let productsData;
-        const responseData = response as any; // Type assertion to handle dynamic response
-        
-        // Debug: Log the structure of the response
-        console.log('Response data structure:', {
-          hasProducts: 'products' in responseData,
-          hasData: 'data' in responseData,
-          isArray: Array.isArray(responseData),
-          keys: Object.keys(responseData || {})
-        });
+        const responseData = response.data || response;
 
-        // Case 1: Response is already the data we need
+        // The Shopify Storefront API typically returns products in the 'products' field
         if (responseData.products) {
           productsData = responseData.products;
         } 
-        // Case 2: Response has a data property with products
+        // Handle case where products might be nested under data.products
         else if (responseData.data?.products) {
           productsData = responseData.data.products;
-        }
-        // Case 3: Response is the products array directly
+        } 
+        // Handle direct array response (unlikely but possible)
         else if (Array.isArray(responseData)) {
           productsData = { edges: responseData.map((item: any) => ({ node: item })) };
-        }
-        // Case 4: Response is an object with edges
+        } 
+        // Handle connection-style response (edges/nodes)
         else if (responseData.edges) {
           productsData = responseData;
-        }
-        // Case 5: Check if the response is the data itself (common with GraphQL)
+        } 
+        // Last resort check for products at root level
         else if ('products' in responseData) {
           productsData = responseData.products;
-        }
-        // Case 6: Unknown format - log detailed info for debugging
-        else {
-          console.error('Unexpected response format from Shopify. Full response structure:', {
-            type: typeof responseData,
-            keys: Object.keys(responseData || {}),
-            responseData: responseData
-          });
-          
-          // Try to extract products using a more aggressive approach
-          const allKeys = Object.keys(responseData);
-          const possibleProductKeys = allKeys.filter(key => 
-            key.toLowerCase().includes('product') || 
-            key.toLowerCase().includes('item') ||
-            key.toLowerCase().includes('node')
-          );
-          
-          if (possibleProductKeys.length > 0) {
-            console.log('Possible product keys found:', possibleProductKeys);
-            for (const key of possibleProductKeys) {
-              const value = responseData[key];
-              if (Array.isArray(value) || (value && typeof value === 'object' && 'edges' in value)) {
-                productsData = value;
-                console.log(`Using data from key: ${key}`);
-                break;
-              }
-            }
-          }
-          
-          if (!productsData) {
-            throw new Error('Unexpected response format from Shopify. Could not locate products data.');
-          }
+        } else {
+          throw new Error('Unexpected response format from Shopify. Could not locate products data.');
         }
 
         if (!productsData?.edges) {
-          console.error('No products found in response. Response:', response);
           throw new Error('No products found in the response.');
         }
 
-        console.log('Processing products data...');
         const fetchedProducts = productsData.edges.map((edge: any) => {
           const product = edge.node;
           const firstVariant = product.variants?.edges?.[0]?.node;
-
-          console.log('Product data:', {
-            productId: product.id,
-            firstVariant: firstVariant,
-            variantsCount: product.variants?.edges?.length || 0
-          });
 
           // Ensure we have a valid Shopify variant ID
           let variantId = firstVariant?.id;
           let merchandiseId = firstVariant?.id;
 
-          // If no variant ID, use product ID as fallback (for debugging)
+          // If no variant ID, use product ID as fallback
           if (!variantId || !variantId.startsWith('gid://shopify/')) {
-            console.warn('No valid variant ID found, using product ID as fallback');
             variantId = product.id;
             merchandiseId = product.id;
           }
           
+          // Map the product with all necessary fields including collections
           return {
+            ...product, // Include all product fields
             id: product.id,
             title: product.title,
             price: getProductPrice(product),
@@ -337,7 +216,6 @@ export default function ProductsPage() {
 
         setProducts(fetchedProducts);
       } catch (err) {
-        console.error('Error fetching products:', err);
         setError('Failed to load products');
       } finally {
         setLoading(false);
@@ -348,6 +226,9 @@ export default function ProductsPage() {
   }, []);
 
   const [selectedCategory, setSelectedCategory] = useState('all');
+  // State to store the collection data for each product
+  const [productCollections, setProductCollections] = useState<Record<string, string[]>>({});
+  const [collections, setCollections] = useState<Array<{handle: string; title: string}>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [showFilters, setShowFilters] = useState(false);
@@ -356,10 +237,24 @@ export default function ProductsPage() {
 
   // Filter and sort products
   const filteredProducts = products
-    .filter(product => {
-      const matchesCategory = selectedCategory === 'all' ||
-        product.title.toLowerCase().includes(selectedCategory.toLowerCase());
-      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
+    .filter((product: Product) => {
+      // If 'all' is selected, show all products
+      if (selectedCategory === 'all') return true;
+      
+      // Get all collection handles for this product
+      const productCollections = product.collections?.edges?.map(edge => edge.node.handle.toLowerCase()) || [];
+      
+      // Check if any of the product's collections match the selected category
+      const matchesCategory = productCollections.some(collectionHandle => 
+        collectionHandle === selectedCategory.toLowerCase()
+      );
+
+      
+      // Check search query
+      const matchesSearch = searchQuery === '' || 
+        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+        
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
@@ -380,7 +275,6 @@ export default function ProductsPage() {
     e.stopPropagation();
     
     if (!product.availableForSale) {
-      console.log('Product is not available for sale');
       return;
     }
     
@@ -485,20 +379,35 @@ export default function ProductsPage() {
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
           {/* Category Tabs */}
           <div className="flex space-x-2 overflow-x-auto pb-2 md:pb-0">
-            {['all', 'backpacks', 'daypacks', 'hiking', 'duffles', 'urban'].map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${
-                  selectedCategory === category
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {category === 'all' ? 'All Products' : category.charAt(0).toUpperCase() + category.slice(1)}
-              </button>
-            ))}
+            <button
+              key="all"
+              onClick={() => setSelectedCategory('all')}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${
+                selectedCategory === 'all'
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              All Products
+            </button>
+
+            {[...collections]
+              .sort((a, b) => a.title.localeCompare(b.title))
+              .map((collection) => (
+                <button
+                  key={collection.handle}
+                  onClick={() => setSelectedCategory(collection.handle)}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium capitalize cursor-pointer ${
+                    selectedCategory === collection.handle
+                      ? 'bg-[var(--color-primary)] text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {collection.title}
+                </button>
+              ))}
           </div>
+
 
           <div className="flex items-center space-x-4">
             {/* Search */}
@@ -590,106 +499,243 @@ export default function ProductsPage() {
       {/* Product Grid */}
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
-            {currentProducts.map((product) => (
-              <Link key={product.id} href={`/products/${product.handle}`} className="group block overflow-hidden rounded-lg bg-white transition-shadow hover:shadow-md">
-                <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-[10px_10px_0_0] bg-gray-200 xl:aspect-h-8 xl:aspect-w-7 relative">
-                  <Image
-                    src={product.image}
-                    alt={product.title}
-                    width={500}
-                    height={500}
-                    className="h-full w-full object-cover object-center group-hover:opacity-75"
-                  />
+          <>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
+              {filteredProducts.map((product) => {
+                const hasSale = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price);
+                const isOutOfStock = !product.availableForSale;
+                
+                return (
+                  <div key={product.id} className="group h-full flex flex-col bg-white p-2 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-primary/20">
+                    <Link href={`/products/${product.handle}`} className="block flex-1">
+                      <div className="relative overflow-hidden bg-gray-50 aspect-square rounded-xl">
+                        <Image
+                          src={product.image}
+                          alt={product.title}
+                          width={500}
+                          height={500}
+                          className={`w-full h-full border border-gray-200 object-cover rounded-xl transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-70' : ''}`}
+                        />
+                        
+                        {/* Stock status */}
+                        {isOutOfStock && (
+                          <div className="absolute top-3 left-3 bg-gray-600 text-white text-xs font-medium px-2 py-1 rounded">
+                            Out of Stock
+                          </div>
+                        )}
+                        
+                        {/* In Stock tag */}
+                        {!isOutOfStock && !hasSale && (
+                          <div className="absolute top-3 left-3 bg-black text-white text-xs font-medium px-2 py-1 rounded">
+                            In Stock
+                          </div>
+                        )}
+                        
+                        {/* Sale tag */}
+                        {hasSale && !isOutOfStock && (
+                          <div className="absolute top-3 left-3 bg-red-700 text-white text-xs font-medium px-2 py-1 rounded">
+                            SALE
+                          </div>
+                        )}
+                        
+                        {/* Wishlist + Cart */}
+                        <div className={`absolute top-3 right-3 flex flex-col gap-2 ${isOutOfStock ? 'opacity-50' : ''}`}>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Add to wishlist logic here
+                            }}
+                            className="flex items-center justify-center rounded-full bg-white p-2 text-gray-700 shadow-md transition-all hover:bg-gray-100 hover:scale-110"
+                            aria-label="Add to wishlist"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            </svg>
+                          </button>
 
-                  <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-                    {!product.availableForSale && (
-                      <div className="rounded-full bg-gray-600 px-2 py-1 text-xs font-medium text-white">
-                        Out of Stock
+                          {!isOutOfStock ? (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAddToCart(e, product);
+                              }}
+                              className="flex items-center justify-center rounded-full bg-white p-2 text-gray-700 shadow-md transition-all hover:bg-gray-100 hover:scale-110 disabled:opacity-70 disabled:cursor-not-allowed"
+                              disabled={isAddingToCart}
+                            >
+                              {isAddingToCart ? (
+                                <svg className="animate-spin h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                                  <circle cx="9" cy="21" r="1"/>
+                                  <circle cx="20" cy="21" r="1"/>
+                                  <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"/>
+                                </svg>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-400 cursor-not-allowed"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                                <circle cx="9" cy="21" r="1"/>
+                                <circle cx="20" cy="21" r="1"/>
+                                <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"/>
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {product.originalPrice && (
-                      <div className="rounded-full bg-red-500 px-2 py-1 text-xs font-medium text-white">
-                        SALE
+
+                      <div className="p-4 flex-1 flex flex-col text-gray-900">
+                        <h3 className="text-sm font-medium line-clamp-2 h-10">
+                          {product.title}
+                        </h3>
+                        
+                        <div className="mt-1">
+                          {hasSale ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-bold text-[var(--color-primary)]">
+                                {formatPrice(product.price)}
+                              </span>
+                              <span className="text-xs line-through text-gray-400">
+                                {formatPrice(product.originalPrice)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xl font-bold text-[var(--color-primary)]">
+                              {formatPrice(product.price)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    </Link>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div className="absolute bottom-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                      className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
-                      aria-label="Add to wishlist"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-
-                    {product.availableForSale ? (
-                      <button
-                        onClick={(e) => handleAddToCart(e, product)}
-                        className="flex items-center justify-center rounded-full bg-white/90 p-2 text-gray-700 shadow-md transition-all hover:bg-white hover:scale-110"
-                        aria-label="Add to cart"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                        </svg>
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="flex items-center justify-center rounded-full bg-gray-200/90 p-2 text-gray-400 cursor-not-allowed"
-                        aria-label="Out of stock"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
+            {/* Pagination */}
+            <div className="mt-8">
+              <nav className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <button
+                    onClick={() => currentPage > 1 && paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Next
+                  </button>
                 </div>
-
-                <div className="flex justify-between border border-t-0 border-gray-200 p-4">
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 truncate" title={product.title}>
-                      {product.title.slice(0, 30)}...
-                    </h3>
-                    <div className="mt-3 flex items-center">
-                      <div className="flex items-center">
-                        {[0, 1, 2, 3, 4].map((rating) => (
-                          <Star
-                            key={rating}
-                            className={`h-4 w-4 flex-shrink-0 ${
-                              rating < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-200'
-                            }`}
-                            aria-hidden="true"
-                            fill={rating < Math.floor(product.rating) ? 'currentColor' : 'none'}
-                          />
-                        ))}
-                      </div>
-                      <p className="ml-2 text-xs text-gray-500">
-                        {product.reviewCount} reviews
-                      </p>
-                    </div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">
+                        {filteredProducts.length === 0 ? 0 : (currentPage - 1) * productsPerPage + 1}
+                      </span> to {' '}
+                      <span className="font-medium">
+                        {Math.min(currentPage * productsPerPage, filteredProducts.length)}
+                      </span>{' '}
+                      of <span className="font-medium">{filteredProducts.length}</span> results
+                    </p>
                   </div>
-                  <div className="text-right">
-                    {product.originalPrice ? (
-                      <>
-                        <p className="text-lg font-medium text-[var(--color-primary)]">${formatPrice(product.price)}</p>
-                        <p className="text-xs text-gray-500 line-through">${formatPrice(product.originalPrice)}</p>
-                      </>
-                    ) : (
-                      <p className="text-lg font-medium text-[var(--color-primary)]">${formatPrice(product.price)}</p>
-                    )}
+                  <div>
+                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                      <button
+                        onClick={() => paginate(1)}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        aria-label="First"
+                      >
+                        <span className="sr-only">First</span>
+                        &laquo;
+                      </button>
+                      <button
+                        onClick={() => currentPage > 1 && paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        aria-label="Previous"
+                      >
+                        <span className="sr-only">Previous</span>
+                        &lsaquo;
+                      </button>
+                      
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        if ((i === 1 && currentPage > 4) || (i === 3 && currentPage < totalPages - 3)) {
+                          return (
+                            <span key={`ellipsis-${i}`} className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                              ...
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => paginate(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                              currentPage === pageNum
+                                ? 'z-10 bg-primary text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+                                : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
+                            }`}
+                            aria-current={currentPage === pageNum ? 'page' : undefined}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        aria-label="Next"
+                      >
+                        <span className="sr-only">Next</span>
+                        &rsaquo;
+                      </button>
+                      <button
+                        onClick={() => paginate(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        aria-label="Last"
+                      >
+                        <span className="sr-only">Last</span>
+                        &raquo;
+                      </button>
+                    </nav>
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
+              </nav>
+            </div>
+          </>
         ) : (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900">No products found</h3>
-            <p className="mt-1 text-gray-500">Try adjusting your search or filter to find what you&apos;re looking for.</p>
+            <p className="mt-1 text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
             <div className="mt-6">
               <button
                 onClick={() => {
@@ -704,127 +750,6 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
-
-      {/* Pagination and Results Info */}
-      {totalPages > 1 && (
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Items per page selector */}
-            <div className="flex items-center space-x-2">
-              <label htmlFor="itemsPerPage" className="text-sm text-gray-700">
-                Show:
-              </label>
-              <select
-                id="itemsPerPage"
-                value={productsPerPage}
-                onChange={handleItemsPerPageChange}
-                className="block w-20 rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
-              >
-                <option value={4}>4</option>
-                <option value={8}>8</option>
-                <option value={12}>12</option>
-                <option value={24}>24</option>
-                <option value={48}>48</option>
-              </select>
-              <span className="text-sm text-gray-500">per page</span>
-            </div>
-
-            <div className="flex items-center justify-center space-x-2">
-              {/* Results count */}
-              <div className="text-sm text-gray-700">
-                Showing <span className="font-medium">{indexOfFirstProduct + 1}</span> to{' '}
-                <span className="font-medium">
-                  {Math.min(indexOfLastProduct, filteredProducts.length)}
-                </span>{' '}
-                of <span className="font-medium">{filteredProducts.length}</span>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-                <div className="text-sm text-gray-700 sm:hidden">
-                  Page {currentPage} of {totalPages}
-                </div>
-
-                <nav className="flex items-center space-x-1">
-                  <button
-                    onClick={() => paginate(1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="First page"
-                  >
-                    &laquo;
-                  </button>
-                  <button
-                    onClick={() => currentPage > 1 && paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Previous page"
-                  >
-                    &lsaquo;
-                  </button>
-
-                  <span className="hidden sm:inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700">
-                    Page {currentPage} of {totalPages}
-                  </span>
-
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-
-                    if ((i === 1 && currentPage > 3) || (i === 3 && currentPage < totalPages - 2)) {
-                      return (
-                        <span key={`ellipsis-${i}`} className="px-2 py-1.5">
-                          ...
-                        </span>
-                      );
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => paginate(pageNum)}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                          currentPage === pageNum
-                            ? 'bg-primary text-white hover:bg-primary/90'
-                            : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                        aria-current={currentPage === pageNum ? 'page' : undefined}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Next page"
-                  >
-                    &rsaquo;
-                  </button>
-                  <button
-                    onClick={() => paginate(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Last page"
-                  >
-                    &raquo;
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <TopProducts />
       <Footer />

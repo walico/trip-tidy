@@ -79,6 +79,14 @@ export const PRODUCT_FIELDS = `
         }
       }
     }
+    collections(first: 10) {
+      edges {
+        node {
+          handle
+          title
+        }
+      }
+    }
   }
 `;
 
@@ -148,11 +156,14 @@ export const GET_PRODUCT_QUERY = `
 `;
 
 // Utility functions
-export const formatPrice = (amount: string, currencyCode: string = 'USD'): string => {
+export const formatPrice = (amount: string | undefined | null, currencyCode: string = 'USD'): string => {
+  if (!amount) return '';
+  const number = parseFloat(amount);
+  if (isNaN(number)) return '';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currencyCode,
-  }).format(parseFloat(amount));
+  }).format(number);
 };
 
 export const getProductImage = (product: any): string => {

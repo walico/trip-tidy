@@ -91,10 +91,19 @@ export interface Product {
   originalPrice: string;
   img: string;
   rating: number;
-  reviewCount?: number;
+  reviewCount: number;
   handle: string;
   variantId: string;
-  merchandiseId: string; // Shopify merchandise ID for cart operations
+  merchandiseId: string;
+  availableForSale: boolean;
+  variants?: {
+    edges: Array<{
+      node: {
+        availableForSale: boolean;
+        quantityAvailable: number | null;
+      };
+    }>;
+  };
 }
 
 // Simplified Collection type for our components
