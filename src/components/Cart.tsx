@@ -186,17 +186,32 @@ export default function Cart({ onClose }: CartProps) {
             </Link>
           )}
           
-          <div className="mt-4 text-center">
-            <Link 
-              href="/products" 
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900"
+          <div className="mt-4 space-y-3">
+            <Link
+              href="/cart"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onClose) onClose();
+              }}
+              className="flex items-center justify-center w-full border border-gray-300 bg-white text-gray-800 px-6 py-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              Continue Shopping
+              View Full Cart
             </Link>
+            <div className="text-center">
+              <Link 
+                href="/products" 
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Continue Shopping
+              </Link>
+            </div>
           </div>
         </div>
       </div>

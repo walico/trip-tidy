@@ -23,7 +23,6 @@ export default function CollectionCategories() {
       try {
         setLoading(true);
         if (!shopifyClient) {
-          console.warn('Shopify client not configured');
           return;
         }
         const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, { variables: { first: 10 } });
@@ -40,7 +39,6 @@ export default function CollectionCategories() {
 
         setCollections(fetchedCollections);
       } catch (error) {
-        console.error('Error fetching collections:', error);
         // Keep empty or use fallback data
       } finally {
         setLoading(false);
@@ -167,28 +165,30 @@ export default function CollectionCategories() {
           </div>
         ) : (
           // Static grid for 5 or fewer collections
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {collections.map((collection) => (
-              <Link
-                key={collection.id}
-                href={`/collections/${collection.handle}`}
-                className="group block bg-white rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"
-              >
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-lg bg-gray-100">
-                  <Image
-                    src={collection.image}
-                    alt={collection.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="font-medium text-center text-gray-500 group-hover:text-[var(--color-primary)] transition-colors">
-                    {collection.title}
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full max-w-4xl">
+              {collections.map((collection) => (
+                <Link
+                  key={collection.id}
+                  href={`/collections/${collection.handle}`}
+                  className="group block bg-primary/10 rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-lg bg-white/50">
+                    <Image
+                      src={collection.image}
+                      alt={collection.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="p-4">
+                    <div className="font-medium text-center text-gray-500 group-hover:text-[var(--color-primary)] transition-colors">
+                      {collection.title}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>

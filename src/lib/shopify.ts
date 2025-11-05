@@ -58,6 +58,11 @@ export const PRODUCT_FIELDS = `
         currencyCode
       }
     }
+    options {
+      id
+      name
+      values
+    }
     images(first: 10) {
       edges {
         node {
@@ -66,16 +71,29 @@ export const PRODUCT_FIELDS = `
         }
       }
     }
-    variants(first: 10) {
+    variants(first: 100) {
       edges {
         node {
           id
           title
           availableForSale
+          selectedOptions {
+            name
+            value
+          }
           price {
             amount
             currencyCode
           }
+          compareAtPrice {
+            amount
+            currencyCode
+          }
+          image {
+            url
+            altText
+          }
+          quantityAvailable
         }
       }
     }

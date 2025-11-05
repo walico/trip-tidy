@@ -84,26 +84,62 @@ export interface ShopifyCart {
 }
 
 // Simplified Product type for our components
+export interface ProductOption {
+  id: string;
+  name: string;
+  values: string[];
+}
+
+export interface SelectedOption {
+  name: string;
+  value: string;
+}
+
+export interface ProductVariant {
+  id: string;
+  title: string;
+  availableForSale: boolean;
+  selectedOptions: SelectedOption[];
+  price: {
+    amount: string;
+    currencyCode: string;
+  };
+  compareAtPrice?: {
+    amount: string;
+    currencyCode: string;
+  };
+  image?: {
+    url: string;
+    altText?: string;
+  };
+  quantityAvailable?: number;
+}
+
 export interface Product {
   id: string;
   title: string;
+  description: string;
+  handle: string;
+  availableForSale: boolean;
   price: string;
   originalPrice: string;
-  img: string;
-  rating: number;
-  reviewCount: number;
-  handle: string;
+  priceRange: {
+    minVariantPrice: Money;
+    maxVariantPrice: Money;
+  };
+  options: ProductOption[];
+  images: string[];
+  variants: ProductVariant[];
   variantId: string;
   merchandiseId: string;
-  availableForSale: boolean;
-  variants?: {
-    edges: Array<{
-      node: {
-        availableForSale: boolean;
-        quantityAvailable: number | null;
-      };
-    }>;
-  };
+  selectedVariant?: ProductVariant;
+  selectedOptions?: Record<string, string>;
+  // For backward compatibility
+  img?: string;
+  rating?: number;
+  reviewCount?: number;
+  createdAt?: number;
+  rawCreatedAt?: string;
 }
 
 // Simplified Collection type for our components
