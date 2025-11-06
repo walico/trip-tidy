@@ -23,8 +23,8 @@ const NavLink = ({
     onClick={onClick}
     className={`block px-4 py-2 text-base font-medium rounded-md transition-colors ${
       isActive 
-        ? 'text-[var(--color-primary)] bg-gray-50' 
-        : 'text-gray-700 hover:text-[var(--color-primary)] hover:bg-gray-50'
+        ? 'text-(--color-primary) bg-gray-50' 
+        : 'text-gray-700 hover:text-(--color-primary) hover:bg-gray-50'
     }`}
   >
     {children}
@@ -76,7 +76,6 @@ const NavBar = () => {
     } else {
       openCart();
     }
-    document.body.classList.toggle('cart-open', !isCartOpen);
   };
 
   const isActive = (href: string) => {
@@ -166,7 +165,7 @@ const NavBar = () => {
               <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"/>
             </svg>
             {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-[var(--color-primary)] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              <span className="absolute -top-2 -right-2 bg-(--color-primary) text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {itemCount}
               </span>
             )}
@@ -201,12 +200,12 @@ const NavBar = () => {
 
           {/* Right: icons */}
           <div className="flex items-center justify-end gap-5 text-xl text-gray-700">
-            <Link className={`icon-link ${isActive('/wishlist') ? 'text-[var(--color-primary)]' : ''}`} href="/wishlist" aria-label="Wishlist">
+            <Link className={`icon-link ${isActive('/wishlist') ? 'text-(--color-primary)' : ''}`} href="/wishlist" aria-label="Wishlist">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 22l7.8-8.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/>
               </svg>
             </Link>
-            <Link className={`icon-link ${isActive('/account/login') ? 'text-[var(--color-primary)]' : ''}`} href="/account/login" aria-label="Account">
+            <Link className={`icon-link ${isActive('/account/login') ? 'text-(--color-primary)' : ''}`} href="/account/login" aria-label="Account">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M20 21a8 8 0 1 0-16 0"/>
                 <circle cx="12" cy="7" r="4"/>
@@ -214,18 +213,25 @@ const NavBar = () => {
             </Link>
             <div className="relative">
               <button 
-                onClick={toggleCart}
-                onTouchEnd={toggleCart}
-                className={`p-2 text-gray-700 hover:text-gray-900 relative cart-button ${isCartOpen ? 'text-[var(--color-primary)]' : ''}`}
-                aria-label="Open cart"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isCartOpen) {
+                    closeCart();
+                  } else {
+                    openCart();
+                  }
+                }}
+                className="relative text-gray-700 hover:text-gray-900 p-2"
+                aria-label="Cart"
+                aria-expanded={isCartOpen}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
-                   <circle cx="9" cy="21" r="1"/>
-                   <circle cx="20" cy="21" r="1"/>
-                   <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"/>
-                 </svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"></path>
+                </svg>
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--color-primary)] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-(--color-primary) text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {itemCount}
                   </span>
                 )}
@@ -234,12 +240,37 @@ const NavBar = () => {
               {/* Cart Dropdown */}
               {isCartOpen && (
                 <div 
-                  className="fixed inset-0 z-40 lg:absolute lg:inset-auto lg:right-0 lg:top-full lg:mt-2 lg:w-[400px] lg:rounded-lg lg:shadow-2xl lg:border lg:border-gray-200"
+                  className="fixed inset-0 z-[9999] flex justify-end bg-black bg-opacity-50"
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 9999,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    width: '100vw',
+                    height: '100vh',
+                    margin: 0,
+                    padding: 0
+                  }}
                   onClick={() => closeCart()}
                 >
                   <div 
                     ref={cartRef}
-                    className="h-full bg-white lg:max-h-[90vh] lg:rounded-lg flex flex-col"
+                    className="h-full w-full max-w-md bg-white overflow-y-auto transform transition-transform duration-300 ease-in-out translate-x-0"
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      maxWidth: '28rem',
+                      height: '100%',
+                      backgroundColor: 'white',
+                      overflowY: 'auto',
+                      transform: 'translateX(0)',
+                      WebkitOverflowScrolling: 'touch'
+                    }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Cart onClose={closeCart} />

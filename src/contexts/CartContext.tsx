@@ -184,6 +184,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [getCart]);
 
   // Cart visibility functions
+  // Handle body scroll lock when cart is open/closed
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [isCartOpen]);
+
   const openCart = useCallback(() => {
     setIsCartOpen(true);
   }, []);

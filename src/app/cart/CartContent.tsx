@@ -164,27 +164,25 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <h1 className="text-2xl font-medium mb-8 text-center md:text-left">YOUR CART</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           {cart.lines.edges.map(({ node: item }: any) => (
-            <div key={item.id} className="flex flex-col md:flex-row border-b py-6">
-              <div className="w-full md:w-1/3 lg:w-1/4 mb-4 md:mb-0">
-                <div className="relative aspect-square">
+            <div key={item.id} className="flex flex-col md:flex-row border-b border-gray-200 py-6">
+              <div className="w-full md:w-1/4 mb-4 md:mb-0">
+                <div className="relative aspect-square bg-gray-100">
                   {isChangingVariant[item.id] ? (
-                    <div className="absolute inset-0 bg-gray-100 rounded flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
                     </div>
                   ) : (
                     <Image
                       src={
-                        // Try to find the matching variant's image
                         item.merchandise.product.variants?.edges.find(
                           (edge: { node: { id: string } }) => edge.node.id === item.merchandise.id
                         )?.node.image?.url ||
-                        // Fall back to the first product image
                         item.merchandise.product.images?.edges[0]?.node.url ||
                         '/placeholder-product.jpg'
                       }
@@ -196,18 +194,18 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
                         item.merchandise.product.title
                       }
                       fill
-                      className="object-cover rounded"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
                     />
                   )}
                 </div>
               </div>
               
               <div className="flex-1 md:pl-6">
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-medium">
-                      <Link href={`/products/${item.merchandise.product.handle}`}>
+                <div className="flex flex-col h-full">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium mb-1">
+                      <Link href={`/products/${item.merchandise.product.handle}`} className="hover:underline">
                         {item.merchandise.product.title}
                       </Link>
                     </h3>
@@ -328,36 +326,38 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
                     </p>
                   </div>
                   
-                  <button 
-                    onClick={() => removeItem(item.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors h-6"
-                    disabled={isUpdating[item.id]}
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                </div>
-                
-                <div className="flex items-center mt-4">
-                  <div className="flex items-center border rounded-md">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={isUpdating[item.id] || item.quantity <= 1}
+                        className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:bg-transparent"
+                      >
+                        −
+                      </button>
+                      <span className="px-3 py-1 text-center w-10">
+                        {isUpdating[item.id] ? '...' : item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={isUpdating[item.id]}
+                        className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                      >
+                        +
+                      </button>
+                    </div>
+                    
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="h-8 w-8 flex items-center justify-center text-gray-600 hover:bg-gray-50"
+                      onClick={() => removeItem(item.id)}
                       disabled={isUpdating[item.id]}
+                      className="text-sm text-gray-500 hover:text-red-600 flex items-center"
                     >
-                      <Minus size={16} />
-                    </button>
-                    <span className="w-10 text-center">
-                      {isUpdating[item.id] ? '...' : item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="h-8 w-8 flex items-center justify-center text-gray-600 hover:bg-gray-50"
-                      disabled={isUpdating[item.id]}
-                    >
-                      <Plus size={16} />
+                      <Trash2 size={16} className="mr-1" />
+                      Remove
                     </button>
                   </div>
                 </div>
+                
               </div>
             </div>
           ))}

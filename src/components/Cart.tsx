@@ -21,7 +21,7 @@ export default function Cart({ onClose }: CartProps) {
 
   if (itemCount === 0) {
     return (
-      <div className="p-8 text-center">
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-gray-100 rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -43,9 +43,9 @@ export default function Cart({ onClose }: CartProps) {
   }
 
   return (
-    <div className="cart-container w-[400px] max-w-[95vw] bg-white shadow-xl rounded-lg overflow-hidden flex flex-col h-[90vh] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+    <div className="h-full flex flex-col w-full">
       {/* Cart Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center sticky top-0 z-10">
         <h2 className="text-xl font-semibold text-gray-900">Your Cart <span className="text-gray-500 text-base font-normal">({itemCount} {itemCount === 1 ? 'item' : 'items'})</span></h2>
         {onClose && (
           <button
@@ -64,11 +64,11 @@ export default function Cart({ onClose }: CartProps) {
       </div>
       
       {/* Cart Items */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-200">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 w-full">
         {items.map((item) => (
           <div key={item.id} className="p-4 flex gap-4 hover:bg-gray-50 transition-colors duration-150">
             {/* Product Image */}
-            <div className="relative w-20 h-20 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+            <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-md ">
               <Image
                 src={item.image}
                 alt={item.title}
@@ -143,7 +143,7 @@ export default function Cart({ onClose }: CartProps) {
       </div>
       
       {/* Order Summary */}
-      <div className="border-t border-gray-200 bg-gray-50 p-6">
+      <div className="border-t border-gray-200 px-6 py-4 bg-white sticky bottom-0">
         <div className="space-y-4">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Subtotal</span>

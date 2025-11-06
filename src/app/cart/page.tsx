@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCart } from '@/lib/cart';
 import CartContent from './CartContent';
+import TopProducts from '@/components/TopProducts';
+import Footer from '@/components/Footer';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +23,7 @@ export default async function CartPage() {
 
   if (!cartId) {
     return (
+    <>
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
         <p className="mb-8">Looks like you haven't added anything to your cart yet.</p>
@@ -31,6 +34,9 @@ export default async function CartPage() {
           Continue Shopping
         </Link>
       </div>
+      <TopProducts />
+      <Footer />
+    </>
     );
   }
   
@@ -55,20 +61,32 @@ export default async function CartPage() {
       );
     }
     
-    return <CartContent cart={cart} />;
+    return (
+      <>
+        <CartContent cart={cart} />
+        <TopProducts />
+        <Footer />
+      </>
+    );
+
+    
   } catch (error) {
     console.error('Error fetching cart:', error);
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-3xl font-bold mb-4">Error loading your cart</h1>
-        <p className="mb-8">There was an error loading your cart. Please try again.</p>
-        <Link
-          href="/products"
-          className="inline-block bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
-        >
-          Continue Shopping
-        </Link>
-      </div>
+      <>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-3xl font-bold mb-4">Error loading your cart</h1>
+          <p className="mb-8">There was an error loading your cart. Please try again.</p>
+          <Link
+            href="/products"
+            className="inline-block bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+        <TopProducts />
+        <Footer />
+      </>
     );
   }
 }

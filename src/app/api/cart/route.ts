@@ -203,22 +203,27 @@ async function createCart(lines: { merchandiseId: string; quantity: number }[] =
 
     // Check if response is empty or invalid
     if (!response) {
+      console.error('Shopify cartCreate mutation returned empty response:', response);
       throw new CartError('Empty response from Shopify', 500);
     }
 
     if (typeof response !== 'object') {
+      console.error('Shopify cartCreate mutation returned non-object response:', response);
       throw new CartError('Invalid response format from Shopify', 500, { response });
     }
 
     if (!response.data?.cartCreate) {
+      console.error('Shopify cartCreate mutation missing cartCreate field:', response);
       throw new CartError('Invalid response from Shopify', 500, { response });
     }
 
     if (response.data.cartCreate.userErrors?.length > 0) {
+      console.error('Shopify cartCreate mutation returned userErrors:', response.data.cartCreate.userErrors, response);
       throw new CartError('Failed to create cart', 400, response.data.cartCreate.userErrors);
     }
 
     if (!response.data.cartCreate.cart) {
+      console.error('Shopify cartCreate mutation did not return a cart:', response);
       throw new CartError('No cart returned', 500, { response });
     }
 
