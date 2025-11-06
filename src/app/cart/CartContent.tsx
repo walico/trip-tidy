@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useCart } from '@/contexts/CartContext';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, Minus, Plus } from 'lucide-react';
@@ -71,6 +72,7 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
   const [cart, setCart] = useState(initialCart);
   const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
   const [isChangingVariant, setIsChangingVariant] = useState<Record<string, boolean>>({});
+  const { refreshCart } = useCart();
 
   const updateQuantity = async (lineId: string, quantity: number) => {
     if (quantity < 1) return;
@@ -154,7 +156,17 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
         throw new Error('Invalid remove item response');
       }
       
+      // Update the cart state
       setCart(data.cart);
+      
+      // Refresh the cart context to update the cart count
+      await refreshCart();
+      
+      // If this was the last item, clear localStorage
+      if (data.cart.lines.edges.length === 0 && typeof window !== 'undefined') {
+        localStorage.removeItem('cartItems');
+        localStorage.removeItem('cartId');
+      }
     } catch (error: any) {
       console.error('Error removing item:', error);
       alert(error.message || 'Failed to remove item');

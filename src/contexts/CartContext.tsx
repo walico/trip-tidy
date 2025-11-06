@@ -14,6 +14,8 @@ export interface CartItem {
   merchandiseId: string;
 }
 
+type CartItemInput = Omit<CartItem, 'quantity'>;
+
 interface CartContextType {
   items: CartItem[];
   itemCount: number;
@@ -28,7 +30,7 @@ interface CartContextType {
   updateQuantity: (variantId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   getCart: () => Promise<void>;
-  syncWithShopify: () => Promise<void>;
+  refreshCart: () => Promise<void>;
   openCart: () => void;
   closeCart: () => void;
 }
@@ -59,13 +61,60 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
  * All methods automatically handle cart creation, quantity updates, and state synchronization.
  */
 
+// Helper function to get cart items from localStorage
+const getStoredCartItems = (): CartItem[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem('cartItems');
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error('Error reading cart from localStorage:', e);
+    return [];
+  }
+};
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const storedItems = localStorage.getItem('cartItems');
+      return storedItems ? JSON.parse(storedItems) : [];
+    }
+    return [];
+  });
   const [cartId, setCartId] = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Clear any stale cart data on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !cartId) {
+      // If there's no cartId but we have items in localStorage, clear them
+      const storedItems = localStorage.getItem('cartItems');
+      if (storedItems) {
+        try {
+          const parsedItems = JSON.parse(storedItems);
+          if (parsedItems.length > 0) {
+            localStorage.removeItem('cartItems');
+          }
+        } catch (e) {
+          console.error('Error parsing stored cart items:', e);
+          localStorage.removeItem('cartItems');
+        }
+      }
+    }
+  }, [cartId]);
+
+  // Initialize with items from localStorage on the client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedItems = getStoredCartItems();
+      if (storedItems.length > 0) {
+        setItems(storedItems);
+      }
+    }
+  }, []);
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -74,6 +123,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!isInitialized) {
       // Function to get cookie value
       const getCookie = (name: string) => {
+        if (typeof document === 'undefined') return null;
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
         if (parts.length === 2) {
@@ -106,28 +156,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [isInitialized]);
 
-  // Persist cartId changes in both localStorage and cookie
+  // Persist cart data in localStorage
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
+      
+      // Persist cartId
       if (cartId) {
-        // Set localStorage
         localStorage.setItem('cartId', cartId);
-        
-        // Set cookie with path=/ so it's available everywhere
         document.cookie = `cartId=${encodeURIComponent(cartId)};path=/;max-age=31536000`; // 1 year expiry
       } else {
-        // Clear both storage mechanisms
         localStorage.removeItem('cartId');
         document.cookie = 'cartId=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       }
+      
+      // Persist cart items
+      if (items.length > 0) {
+        localStorage.setItem('cartItems', JSON.stringify(items));
+      } else {
+        localStorage.removeItem('cartItems');
+      }
     } catch (e) {
-      console.error('Error persisting cart ID:', e);
+      console.error('Error persisting cart data:', e);
     }
-  }, [cartId]);
+  }, [cartId, items]);
 
   // Get or create cart
-  const getCart = useCallback(async () => {
+  const getCart = useCallback<() => Promise<void>>(async () => {
     // Only fetch if we have a cartId (meaning cart exists in Shopify)
     if (!cartId) {
       console.log('No cartId available, skipping cart fetch');
@@ -184,38 +239,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [getCart]);
 
   // Cart visibility functions
-  // Handle body scroll lock when cart is open/closed
-  useEffect(() => {
-    if (isCartOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-    };
-  }, [isCartOpen]);
-
-  const openCart = useCallback(() => {
-    setIsCartOpen(true);
-  }, []);
-
-  const closeCart = useCallback(() => {
-    setIsCartOpen(false);
-  }, []);
 
   // Add item(s) to cart - supports both single item and arrays
   // Usage examples:
   // addToCart(singleProduct) - adds 1 product
   // addToCart([product1, product2, product3]) - adds 3 different products
-  const addToCart = useCallback(async (itemOrItems: Omit<CartItem, 'quantity'> | Omit<CartItem, 'quantity'>[]) => {
+  const addToCart = useCallback(async (itemOrItems: CartItemInput | CartItemInput[]) => {
     try {
       setIsLoading(true);
 
@@ -291,59 +320,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cartId]);
 
-  // Add multiple items to cart at once
-  const addMultipleToCart = useCallback(async (items: Omit<CartItem, 'quantity'>[]) => {
-    try {
-      setIsLoading(true);
-
-      console.log('Adding multiple items to cart via API:', items.length, 'items');
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cartId,
-          items: items.map(item => ({
-            id: item.variantId,
-            quantity: 1
-          })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.cart) {
-        setCartId(data.cart.id);
-        setCheckoutUrl(data.cart.checkoutUrl);
-
-        // Update local state based on Shopify's response
-        setItems(
-          data.cart.lines?.edges?.map((edge: any) => ({
-            id: edge.node.id,
-            variantId: edge.node.merchandise.id,
-            productId: edge.node.merchandise.product.id,
-            title: edge.node.merchandise.product.title,
-            price: edge.node.merchandise.priceV2.amount,
-            image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
-            quantity: edge.node.quantity,
-            merchandiseId: edge.node.merchandise.id,
-          })) || []
-        );
-
-        setIsCartOpen(true);
-        toast.success(`Added ${items.length} items to cart`);
-      } else {
-        throw new Error(data.error || 'Failed to add items to cart');
-      }
-    } catch (error) {
-      console.error('Failed to add multiple items to cart:', error);
-      toast.error('Failed to add items to cart');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [cartId]);
-
   // Helper function to add products with specific quantities
-  const addProductsWithQuantities = useCallback(async (productQuantities: Array<{ product: Omit<CartItem, 'quantity'>, quantity: number }>) => {
+  const addProductsWithQuantities = useCallback(async (productQuantities: Array<{ product: CartItemInput, quantity: number }>) => {
     try {
       setIsLoading(true);
 
@@ -375,18 +353,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setCheckoutUrl(data.cart.checkoutUrl);
 
         // Update local state based on Shopify's response
-        setItems(
-          data.cart.lines?.edges?.map((edge: any) => ({
-            id: edge.node.id,
-            variantId: edge.node.merchandise.id,
-            productId: edge.node.merchandise.product.id,
-            title: edge.node.merchandise.product.title,
-            price: edge.node.merchandise.priceV2.amount,
-            image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
-            quantity: edge.node.quantity,
-            merchandiseId: edge.node.merchandise.id,
-          })) || []
-        );
+        const updatedItems = data.cart.lines?.edges?.map((edge: any) => ({
+          id: edge.node.id,
+          variantId: edge.node.merchandise.id,
+          productId: edge.node.merchandise.product.id,
+          title: edge.node.merchandise.product.title,
+          price: edge.node.merchandise.priceV2.amount,
+          image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
+          quantity: edge.node.quantity,
+          merchandiseId: edge.node.merchandise.id,
+        })) || [];
+        
+        setItems(updatedItems);
+        // Update localStorage with the new items
+        localStorage.setItem('cartItems', JSON.stringify(updatedItems));
 
         setIsCartOpen(true);
         const totalItems = validQuantities.reduce((sum, pq) => sum + pq.quantity, 0);
@@ -402,180 +382,189 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cartId]);
 
-  // Remove item from cart
-  const removeFromCart = useCallback(
-    async (variantId: string) => {
-      if (!cartId) {
-        console.error('No cart ID available');
-        toast.error('Cart not found');
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        console.log(`Removing item ${variantId} from cart ${cartId}`);
-        
-        // Prepare encoded IDs for the URL
-        const encodedCartId = encodeURIComponent(cartId);
-        const encodedVariantId = encodeURIComponent(variantId);
-        const foundLineId = items.find(i => i.variantId === variantId)?.id;
-        const encodedLineId = foundLineId ? encodeURIComponent(foundLineId) : null;
-
-        const url = encodedLineId
-          ? `/api/cart?cartId=${encodedCartId}&lineId=${encodedLineId}`
-          : `/api/cart?cartId=${encodedCartId}&variantId=${encodedVariantId}`;
-
-        const response = await fetch(url, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Remove from cart response:', data);
-
-        if (data.success) {
-          // If cart is empty after removal, reset the cart
-          if (!data.cart || !data.cart.lines?.edges?.length) {
-            setItems([]);
-            setCheckoutUrl(null);
-            localStorage.removeItem('cartId');
-            setCartId(null);
-            toast.success('Cart is now empty');
-          } else {
-            // Update from Shopify response
-            setCheckoutUrl(data.cart.checkoutUrl || null);
-            setItems(
-              data.cart.lines.edges.map((edge: any) => ({
-                id: edge.node.id,
-                variantId: edge.node.merchandise.id,
-                productId: edge.node.merchandise.product.id,
-                title: edge.node.merchandise.product.title,
-                price: edge.node.merchandise.priceV2.amount,
-                image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
-                quantity: edge.node.quantity,
-                merchandiseId: edge.node.merchandise.id,
-              }))
-            );
-            toast.success('Item removed from cart');
-          }
-        } else {
-          throw new Error(data.error || 'Failed to remove item');
-        }
-      } catch (error) {
-        console.error('Error removing item from cart:', error);
-        // Fallback to local removal if the API call fails
-        setItems(prevItems => {
-          const updatedItems = prevItems.filter(item => item.variantId !== variantId);
-          if (updatedItems.length === 0) {
-            setCheckoutUrl(null);
-            localStorage.removeItem('cartId');
-            setCartId(null);
-          }
-          return updatedItems;
-        });
-        toast.error('Item removed (local update)');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [cartId]
-  );
-
-  // Update item quantity
-  const updateQuantity = useCallback(
-    async (variantId: string, quantity: number) => {
-      if (!cartId) return;
-
-      if (quantity < 1) {
-        await removeFromCart(variantId);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const response = await fetch('/api/cart', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cartId,
-            items: [{ id: variantId, quantity }],
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          if (data.cart) {
-            setCheckoutUrl(data.cart.checkoutUrl || null);
-            setItems(
-              data.cart.lines?.edges?.map((edge: any) => ({
-                id: edge.node.id,
-                variantId: edge.node.merchandise.id,
-                productId: edge.node.merchandise.product.id,
-                title: edge.node.merchandise.product.title,
-                price: edge.node.merchandise.priceV2.amount,
-                image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
-                quantity: edge.node.quantity,
-                merchandiseId: edge.node.merchandise.id,
-              })) || []
-            );
-          } else {
-            // Fallback: update locally
-            setItems((prevItems) =>
-              prevItems.map((item) =>
-                item.variantId === variantId ? { ...item, quantity } : item
-              )
-            );
-          }
-        } else {
-          throw new Error(data.error || 'Failed to update quantity');
-        }
-      } catch (error) {
-        console.error('Failed to update quantity:', error);
-        toast.error('Failed to update quantity');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [cartId, removeFromCart]
-  );
-
-  // Clear cart
-  const clearCart = useCallback(async () => {
-    if (!cartId) return;
-
+  // Add multiple items to cart at once
+  const addMultipleToCart = useCallback(async (itemsToAdd: Omit<CartItem, 'quantity'>[]) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/cart?cartId=${encodeURIComponent(cartId)}` , {
-        method: 'DELETE',
+
+      console.log('Adding multiple items to cart via API:', itemsToAdd.length, 'items');
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cartId,
+          items: itemsToAdd.map(item => ({
+            id: item.variantId,
+            quantity: 1
+          })),
+        }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setItems([]);
-        setCartId(null);
-        localStorage.removeItem('cartId'); // Clean up localStorage
-        toast.success('Cart cleared');
+      if (data.success && data.cart) {
+        setCartId(data.cart.id);
+        setCheckoutUrl(data.cart.checkoutUrl);
+
+        // Update local state based on Shopify's response
+        setItems(
+          data.cart.lines?.edges?.map((edge: any) => ({
+            id: edge.node.id,
+            variantId: edge.node.merchandise.id,
+            productId: edge.node.merchandise.product.id,
+            title: edge.node.merchandise.product.title,
+            price: edge.node.merchandise.priceV2.amount,
+            image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
+            quantity: edge.node.quantity,
+            merchandiseId: edge.node.merchandise.id,
+          })) || []
+        );
+        
+        setIsCartOpen(true);
+        toast.success(`Added ${itemsToAdd.length} items to cart`);
+        return data.cart;
       } else {
-        throw new Error('Failed to clear cart');
+        throw new Error(data.error || 'Failed to add items to cart');
       }
     } catch (error) {
-      console.error('Failed to clear cart:', error);
-      toast.error('Failed to clear cart');
+      console.error('Failed to add multiple items to cart:', error);
+      toast.error('Failed to add items to cart');
+      throw error;
     } finally {
       setIsLoading(false);
     }
   }, [cartId]);
 
-  const value = {
+  // Clear cart
+  const clearCart = useCallback(async () => {
+    // Clear local state first for immediate UI update
+    setItems([]);
+    setCartId(null);
+    setCheckoutUrl(null);
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cartItems');
+      localStorage.removeItem('cartId');
+    }
+
+    // If we have a cartId, also clear it from the server
+    if (cartId) {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/cart?cartId=${encodeURIComponent(cartId)}`, {
+          method: 'DELETE',
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          console.error('Failed to clear cart on server:', data.error);
+          // Don't show error to user since we've already cleared local state
+        }
+      } catch (error) {
+        console.error('Error clearing cart on server:', error);
+        // Don't show error to user since we've already cleared local state
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    // Show success message
+    toast.success('Cart cleared');
+  }, [cartId]);
+
+  const refreshCart = useCallback(async () => {
+    if (!cartId) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/cart?cartId=${encodeURIComponent(cartId)}`);
+      const data = await response.json();
+
+      if (data.success && data.cart) {
+        const cartItems = data.cart.lines?.edges?.map((edge: any) => ({
+          id: edge.node.id,
+          variantId: edge.node.merchandise.id,
+          productId: edge.node.merchandise.product.id,
+          title: edge.node.merchandise.product.title,
+          price: edge.node.merchandise.priceV2.amount,
+          image: edge.node.merchandise.product.images?.edges[0]?.node?.url || '',
+          quantity: edge.node.quantity,
+          merchandiseId: edge.node.merchandise.id,
+        })) || [];
+
+        setItems(cartItems);
+        setCheckoutUrl(data.cart.checkoutUrl);
+      }
+    } catch (error) {
+      console.error('Failed to refresh cart:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cartId]);
+
+  const updateQuantity = useCallback(async (variantId: string, quantity: number) => {
+    try {
+      if (quantity < 1) {
+        await removeFromCart(variantId);
+        return;
+      }
+
+      const updatedItems = items.map(item => 
+        item.variantId === variantId ? { ...item, quantity } : item
+      );
+      
+      setItems(updatedItems);
+      
+      // Update localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+      }
+      
+      // If cart is managed by an API, you would call it here
+      // await updateCartInAPI(updatedItems);
+    } catch (error) {
+      console.error('Error updating item quantity:', error);
+      toast.error('Failed to update quantity');
+    }
+  }, [items]);
+
+  const openCart = useCallback(() => setIsCartOpen(true), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
+
+  const removeFromCart = useCallback(async (variantId: string) => {
+    try {
+      setIsLoading(true);
+      const currentItems = [...items];
+      const existingItemIndex = currentItems.findIndex(item => item.variantId === variantId);
+      
+      if (existingItemIndex > -1) {
+        currentItems.splice(existingItemIndex, 1);
+        setItems(currentItems);
+        
+        // If you're using a backend service to manage the cart, you would call it here
+        // For example:
+        // await updateCartInBackend(currentItems);
+        
+        // Update localStorage if you're using it for cart persistence
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cartItems', JSON.stringify(currentItems));
+        }
+        
+        toast.success('Item removed from cart');
+      }
+    } catch (error) {
+      console.error('Error removing item from cart:', error);
+      toast.error('Failed to remove item from cart');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [items]);
+
+  const value: CartContextType = {
     items,
-    itemCount,
+    itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
     cartId,
     checkoutUrl,
     isCartOpen,
@@ -587,13 +576,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     updateQuantity,
     clearCart,
     getCart,
-    syncWithShopify,
+    refreshCart,
     openCart,
     closeCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-}
+};
 
 export function useCart() {
   const context = useContext(CartContext);
@@ -602,3 +591,5 @@ export function useCart() {
   }
   return context;
 }
+
+export default CartContext;

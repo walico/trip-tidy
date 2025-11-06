@@ -3,7 +3,6 @@
 import { useCart } from '@/contexts/CartContext';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
 
 interface CartProps {
   onClose?: () => void;
@@ -19,14 +18,6 @@ export default function Cart({ onClose }: CartProps) {
   const shipping: number = 0; // Free shipping
   const tax: number = subtotal * 0.1; // 10% tax
   const total: number = subtotal + shipping + tax;
-
-  // Clear localStorage if cart is empty
-  useEffect(() => {
-    if (itemCount === 0 && typeof window !== 'undefined') {
-      localStorage.removeItem('cartItems');
-      localStorage.removeItem('cartId');
-    }
-  }, [itemCount]);
 
   if (itemCount === 0) {
     return (
