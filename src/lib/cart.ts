@@ -5,6 +5,13 @@ const CART_ID_COOKIE = 'cartId';
 
 export async function getCart(cartId?: string) {
   if (!cartId) return null;
+
+  // Handle encoded cart IDs
+  try {
+    cartId = decodeURIComponent(cartId);
+  } catch (e) {
+    console.error('Error decoding cart ID:', e);
+  }
   
   try {
     const { data } = await (shopifyClient as any).request(

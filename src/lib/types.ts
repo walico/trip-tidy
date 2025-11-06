@@ -25,6 +25,10 @@ export interface ShopifyProduct {
         title: string;
         price: Money;
         compareAtPrice?: Money;
+        selectedOptions: Array<{
+          name: string;
+          value: string;
+        }>;
       };
     }>;
   };

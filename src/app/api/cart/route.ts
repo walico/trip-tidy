@@ -31,10 +31,39 @@ const cartFragment = `
                 amount
                 currencyCode
               }
+              selectedOptions {
+                name
+                value
+              }
               product {
                 id
                 title
                 handle
+                options {
+                  id
+                  name
+                  values
+                }
+                variants(first: 100) {
+                  edges {
+                    node {
+                      id
+                      title
+                      selectedOptions {
+                        name
+                        value
+                      }
+                      priceV2 {
+                        amount
+                        currencyCode
+                      }
+                      image {
+                        url
+                        altText
+                      }
+                    }
+                  }
+                }
                 images(first: 1) {
                   edges {
                     node {
@@ -463,11 +492,15 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Cart ID is required' }, { status: 400, headers });
     }
 
-    if (!body.items?.length) {
-      return NextResponse.json({ error: 'No items provided' }, { status: 400, headers });
+    if (!body.items?.length && !body.lines?.length) {
+      return NextResponse.json({ error: 'No items or lines provided' }, { status: 400, headers });
     }
 
-    console.debug('Updating cart quantities for items:', JSON.stringify(body.items, null, 2));
+    const updateItems = body.lines || body.items;
+    console.debug('Updating cart:', JSON.stringify({ 
+      cartId: body.cartId,
+      items: updateItems
+    }, null, 2));
 
     const getCartQuery = `
       query GetCart($cartId: ID!) {
@@ -504,19 +537,40 @@ export async function PUT(request: Request) {
       throw new CartError('Cart not found or empty', 404);
     }
 
-    const lineUpdates = body.items.map((item: any) => {
-      const lineToUpdate = cartLookup.data.cart.lines.edges.find((edge: any) => edge.node.merchandise.id === String(item.id));
-      if (!lineToUpdate) {
-        throw new CartError(`Item not found in cart: ${item.id}`, 404);
+    const lineUpdates = updateItems.map((item: any) => {
+      if (item.merchandiseId) {
+        // For variant updates
+        return {
+          id: item.id, // This is the line ID
+          merchandiseId: item.merchandiseId,
+          quantity: parseInt(String(item.quantity))
+        };
+      } else {
+        // For quantity updates
+        const lineToUpdate = cartLookup.data.cart.lines.edges.find(
+          (edge: any) => edge.node.merchandise.id === String(item.id)
+        );
+
+        if (!lineToUpdate) {
+          console.error('Cart line lookup failed:', {
+            itemId: item.id,
+            availableLines: cartLookup.data.cart.lines.edges.map((e: any) => ({
+              lineId: e.node.id,
+              merchandiseId: e.node.merchandise.id
+            }))
+          });
+          throw new CartError(`Item not found in cart: ${item.id}`, 404);
+        }
+
+        return {
+          id: lineToUpdate.node.id,
+          quantity: parseInt(String(item.quantity))
+        };
       }
-      return {
-        id: lineToUpdate.node.id,
-        quantity: parseInt(String(item.quantity))
-      };
     });
 
     const mutation = `
-      mutation UpdateCart($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+      mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
         cartLinesUpdate(cartId: $cartId, lines: $lines) {
           cart {
             ...CartFields

@@ -8,8 +8,17 @@ export const dynamic = 'force-dynamic';
 
 export default async function CartPage() {
   const cookiesList = await cookies();
-  const cartId = cookiesList.get('cartId')?.value;
+  let cartId = cookiesList.get('cartId')?.value;
   
+  // Handle encoded cart IDs
+  if (cartId) {
+    try {
+      cartId = decodeURIComponent(cartId);
+    } catch (e) {
+      console.error('Error decoding cart ID:', e);
+    }
+  }
+
   if (!cartId) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -26,9 +35,12 @@ export default async function CartPage() {
   }
   
   try {
+    console.log('Fetching cart with ID:', cartId); // Debug log
     const cart = await getCart(cartId);
+    console.log('Cart data:', JSON.stringify(cart, null, 2)); // Debug log
     
     if (!cart || !cart.lines?.edges || cart.lines.edges.length === 0) {
+      console.log('Cart is empty or invalid'); // Debug log
       return (
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>

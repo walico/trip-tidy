@@ -72,14 +72,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Initialize cart on mount
   useEffect(() => {
     if (!isInitialized) {
-      // Rehydrate cartId from localStorage if present
+      // Function to get cookie value
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+          const cookieValue = parts.pop()?.split(';').shift();
+          return cookieValue ? decodeURIComponent(cookieValue) : null;
+        }
+        return null;
+      };
+
       try {
-        const storedCartId = typeof window !== 'undefined' ? localStorage.getItem('cartId') : null;
+        // Try to get cartId from either localStorage or cookie
+        const storedCartId = typeof window !== 'undefined' ? 
+          localStorage.getItem('cartId') || getCookie('cartId') : 
+          null;
+
         if (storedCartId) {
           setCartId(storedCartId);
+          // Ensure both storage mechanisms are in sync
+          localStorage.setItem('cartId', storedCartId);
+          document.cookie = `cartId=${encodeURIComponent(storedCartId)};path=/;max-age=31536000`;
         }
       } catch (e) {
-        // ignore storage errors
+        console.error('Error initializing cart:', e);
       }
 
       // Only try to get cart if we have a cartId (from previous session)
@@ -89,17 +106,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [isInitialized]);
 
-  // Persist cartId changes
+  // Persist cartId changes in both localStorage and cookie
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
       if (cartId) {
+        // Set localStorage
         localStorage.setItem('cartId', cartId);
+        
+        // Set cookie with path=/ so it's available everywhere
+        document.cookie = `cartId=${encodeURIComponent(cartId)};path=/;max-age=31536000`; // 1 year expiry
       } else {
+        // Clear both storage mechanisms
         localStorage.removeItem('cartId');
+        document.cookie = 'cartId=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       }
     } catch (e) {
-      // ignore storage errors
+      console.error('Error persisting cart ID:', e);
     }
   }, [cartId]);
 

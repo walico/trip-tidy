@@ -66,7 +66,7 @@ export default function ContactPage() {
           {/* Left Info */}
           <div className="lg:col-span-4 space-y-8">
             <div className="flex items-start">
-              <div className="shrink-0 rounded-md bg-[color:var(--color-primary,theme(colors.indigo.500))]/10 p-3">
+              <div className="shrink-0 rounded-md bg-(--color-primary,var(--color-indigo-500))/10 p-3">
                 <Headset className="h-5 w-5 text-gray-700" aria-hidden="true" />
               </div>
               <div className="ml-4">
@@ -76,7 +76,7 @@ export default function ContactPage() {
             </div>
             
             <div className="flex items-start">
-              <div className="shrink-0 rounded-md bg-[color:var(--color-primary,theme(colors.indigo.500))]/10 p-3">
+              <div className="shrink-0 rounded-md bg-(--color-primary,var(--color-indigo-500))]/10 p-3">
                 <Clock className="h-5 w-5 text-gray-700" aria-hidden="true" />
               </div>
               <div className="ml-4">
@@ -87,7 +87,7 @@ export default function ContactPage() {
             </div>
             
             <div className="flex items-start">
-              <div className="shrink-0 rounded-md bg-[color:var(--color-primary,theme(colors.indigo.500))]/10 p-3">
+              <div className="shrink-0 rounded-md bg-(--color-primary,var(--color-indigo-500))/10 p-3">
                 <MessageSquare className="h-5 w-5 text-gray-700" aria-hidden="true" />
               </div>
               <div className="ml-4">
@@ -96,7 +96,7 @@ export default function ContactPage() {
               </div>
             </div>
             <div className="flex items-start">
-              <div className="shrink-0 rounded-md bg-[color:var(--color-primary,theme(colors.indigo.500))]/10 p-3">
+              <div className="shrink-0 rounded-md bg-(--color-primary,var(--color-indigo-500))/10 p-3">
                 <Package className="h-5 w-5 text-gray-700" aria-hidden="true" />
               </div>
               <div className="ml-4">
