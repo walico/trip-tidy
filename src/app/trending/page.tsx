@@ -357,7 +357,7 @@ export default function TrendingProductsPage() {
                         {[0, 1, 2, 3, 4].map((rating) => (
                           <Star
                             key={rating}
-                            className={`h-4 w-4 flex-shrink-0 ${
+                            className={`h-4 w-4 shrink-0 ${
                               rating < Math.floor(product.rating || 0) ? 'text-yellow-400' : 'text-gray-200'
                             }`}
                             aria-hidden="true"
@@ -373,11 +373,11 @@ export default function TrendingProductsPage() {
                   <div className="text-right">
                     {product.originalPrice ? (
                       <>
-                        <p className="text-lg font-medium text-[var(--color-primary)]">${product.price.toFixed(2)}</p>
+                        <p className="text-lg font-medium text-(--color-primary)">${product.price.toFixed(2)}</p>
                         <p className="text-xs text-gray-500 line-through">${product.originalPrice.toFixed(2)}</p>
                       </>
                     ) : (
-                      <p className="text-lg font-medium text-[var(--color-primary)]">${product.price.toFixed(2)}</p>
+                      <p className="text-lg font-medium text-(--color-primary)">${product.price.toFixed(2)}</p>
                     )}
                   </div>
                 </div>

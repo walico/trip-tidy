@@ -22,7 +22,7 @@ export default function Info() {
      
         {items.map((it) => (
           <div key={it.title} className="flex justify-center flex-col items-center gap-3">
-            <div className="text-[var(--color-primary)] text-lg">{it.icon}</div>
+            <div className="text-(color-primary) text-lg">{it.icon}</div>
             <div>
               <div className="font-medium text-gray-700">{it.title}</div>
               <div className="text-gray-500 text-sm">{it.desc}</div>

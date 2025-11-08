@@ -193,8 +193,8 @@ const NavBar = () => {
           {/* Center: logo */}
           <div className="font-extrabold text-center uppercase" style={{ fontFamily: 'Playfair Display' }}>
             <Link href="/" className="flex flex-col items-center leading-[-5em] text-gray-800 duration-300">
-              <span className="text-4xl font-bold">Trip And</span>
-              <span className="text-4xl font-extrabold">Tidy</span>
+              <span className="text-3xl font-bold">Trip And</span>
+              <span className="text-3xl font-extrabold">Tidy</span>
             </Link>
           </div>
 
@@ -238,45 +238,37 @@ const NavBar = () => {
               </button>
             
               {/* Cart Dropdown */}
-              {isCartOpen && (
+              <div 
+                className={`fixed inset-0 z-50 transition-opacity duration-300 ${
+                  isCartOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+                }`}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 50,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  transition: 'opacity 300ms ease-in-out, visibility 300ms ease-in-out',
+                }}
+                onClick={closeCart}
+              >
                 <div 
-                  className="fixed inset-0 z-[9999] flex justify-end bg-black bg-opacity-50"
+                  ref={cartRef}
+                  className={`absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
+                    isCartOpen ? 'translate-x-0' : 'translate-x-full'
+                  }`}
                   style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 9999,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    width: '100vw',
-                    height: '100vh',
-                    margin: 0,
-                    padding: 0
+                    maxHeight: '100vh',
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch',
                   }}
-                  onClick={() => closeCart()}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div 
-                    ref={cartRef}
-                    className="h-full w-full max-w-md bg-white overflow-y-auto transform transition-transform duration-300 ease-in-out translate-x-0"
-                    style={{
-                      position: 'relative',
-                      width: '100%',
-                      maxWidth: '28rem',
-                      height: '100%',
-                      backgroundColor: 'white',
-                      overflowY: 'auto',
-                      transform: 'translateX(0)',
-                      WebkitOverflowScrolling: 'touch'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Cart onClose={closeCart} />
-                  </div>
+                  <Cart onClose={closeCart} />
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

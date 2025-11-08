@@ -41,6 +41,82 @@ export const isShopifyConfigured = () => {
 
 // First, let's define a simpler version of the product fields
 // that we know should work with the Storefront API
+// Function to fetch products from Shopify
+export async function fetchProducts(first: number = 20) {
+  if (!shopifyClient) {
+    console.error('Shopify client is not configured');
+    return [];
+  }
+
+  try {
+    const query = `
+      query GetProducts($first: Int!) {
+        products(first: $first) {
+          edges {
+            node {
+              id
+              title
+              description
+              handle
+              availableForSale
+              priceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+                maxVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    availableForSale
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    compareAtPrice {
+                      amount
+                      currencyCode
+                    }
+                  }
+                }
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                    altText
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await shopifyClient.request<any>(query, {
+      variables: { first },
+    });
+
+    // Extract products from the response
+    const products = response?.data?.products || response?.products;
+    if (!products) {
+      console.warn('No products found in the response');
+      return [];
+    }
+
+    return products.edges.map((edge: any) => edge.node);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+}
+
 export const PRODUCT_FIELDS = `
   fragment ProductFields on Product {
     id

@@ -151,12 +151,12 @@ export default function TopProducts() {
               <div key={p.id} className={`${p.bg} rounded-2xl hover:shadow-md transition-shadow relative h-[320px] sm:h-64 md:h-60 overflow-hidden`}>
                 <div className="relative grid grid-cols-1 md:grid-cols-2 items-center h-full">
                   {/* Content Section */}
-                  <div className="p-6 sm:p-8 md:p-10 order-2 md:order-1 z-10 bg-gradient-to-t from-black/10 to-transparent md:bg-none">
+                  <div className="p-6 sm:p-8 md:p-10 order-2 md:order-1 z-10 bg-linear-gradient-to-t from-black/10 to-transparent md:bg-none">
                     <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 md:text-gray-800">{p.title}</h3>
                     <p className="text-sm sm:text-base text-gray-600 md:text-gray-500 mt-1 sm:mt-2">{p.subtitle}</p>
                     <Link
                       href={p.href}
-                      className="mt-4 md:mt-6 inline-flex items-center text-[var(--color-primary)] font-medium group"
+                      className="mt-4 md:mt-6 inline-flex items-center text-(--color-primary) font-medium group"
                     >
                       {p.cta}
                       <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +193,7 @@ export default function TopProducts() {
                 onClick={() => goToSlide(index)}
                 className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
                   index === currentSlide
-                    ? 'bg-[var(--color-primary)] w-6 sm:w-8'
+                    ? 'bg-(--color-primary) w-6 sm:w-8'
                     : 'w-2 sm:w-3 bg-gray-300 hover:bg-gray-400'
                 }`}
                 aria-label={`Go to slide ${index + 1}`}

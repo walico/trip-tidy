@@ -1,11 +1,15 @@
 "use client";
 
-import Image from 'next/image';
 import Link from 'next/link';
-import { Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Product } from '@/lib/types';
-import { formatPrice, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
+import { 
+  getProductImage, 
+  getProductPrice, 
+  getProductOriginalPrice,
+  fetchProducts,
+  isShopifyConfigured
+} from '@/lib/shopify';
 import ProductCard from './ProductCard';
 
 export default function FeaturedProducts() {
@@ -14,98 +18,72 @@ export default function FeaturedProducts() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        console.log('Fetching products...');
-        const response = await fetch('/api/products?limit=20');
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch products');
-        }
+    const loadProducts = async () => {
+      if (!isShopifyConfigured()) {
+        setError('Shopify is not properly configured. Please check your environment variables.');
+        setLoading(false);
+        return;
+      }
 
-        console.log('Raw API response:', {
-          productCount: data.data?.edges?.length || 0,
-          firstProduct: data.data?.edges?.[0]?.node?.title
+      try {
+        setLoading(true);
+        console.log('Fetching products from Shopify...');
+        
+        const shopifyProducts = await fetchProducts(8); // Get 8 featured products
+        
+        console.log('Fetched products:', {
+          count: shopifyProducts.length,
+          firstProduct: shopifyProducts[0]?.title
         });
 
-        if (!data.data?.edges?.length) {
-          console.warn('No products found in the API response');
+        if (!shopifyProducts.length) {
+          console.warn('No products found in Shopify');
           setProducts([]);
           return;
         }
 
-        // Process and sort products
-        const now = Date.now();
-        const processedProducts = data.data.edges
-          .map((edge: any) => {
-            const product = edge.node;
-            const firstVariant = product.variants?.edges?.[0]?.node;
-            
-            // Log raw product data for debugging
-            console.log('Processing product:', {
-              title: product.title,
-              id: product.id,
-              createdAt: product.createdAt,
-              publishedAt: product.publishedAt,
-              availableForSale: product.availableForSale,
-              variantsCount: product.variants?.edges?.length || 0
-            });
+        // Process products to match your Product type
+        const processedProducts = shopifyProducts.map((product: any) => {
+          const firstVariant = product.variants?.edges?.[0]?.node;
+          const createdAt = product.createdAt || product.publishedAt || new Date().toISOString();
+          
+          return {
+            id: product.id,
+            title: product.title,
+            price: getProductPrice(product),
+            originalPrice: getProductOriginalPrice(product),
+            img: getProductImage(product),
+            handle: product.handle,
+            variantId: firstVariant?.id || product.id,
+            merchandiseId: firstVariant?.id || product.id,
+            rating: 4.5, // Default rating
+            reviewCount: 0, // Default review count
+            availableForSale: product.availableForSale !== false,
+            createdAt: new Date(createdAt).getTime(),
+            rawCreatedAt: product.createdAt || product.publishedAt
+          };
+        });
 
-            // Parse dates with fallbacks
-            const createdAt = new Date(
-              product.createdAt || 
-              product.publishedAt || 
-              product.updatedAt || 
-              new Date(now - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString() // Fallback: random date in last 30 days
-            );
-
-            return {
-              id: product.id,
-              title: product.title,
-              price: getProductPrice(product),
-              originalPrice: getProductOriginalPrice(product),
-              img: getProductImage(product),
-              handle: product.handle,
-              variantId: firstVariant?.id || product.id,
-              merchandiseId: firstVariant?.id || product.id,
-              rating: 4.5,
-              reviewCount: 0,
-              availableForSale: product.availableForSale !== false, // Default to true if undefined
-              createdAt: createdAt.getTime(),
-              rawCreatedAt: product.createdAt || product.publishedAt
-            };
-          })
-          // Sort by creation date (newest first), with fallback to 0 if createdAt is undefined
-          .sort((a: Product, b: Product) => (b.createdAt || 0) - (a.createdAt || 0));
-
-        // Log sorted products
-        console.log('Sorted products:', processedProducts.map((p: Product) => ({
-          title: p.title,
-          date: p.createdAt ? new Date(p.createdAt).toISOString() : 'N/A',
-          available: p.availableForSale
-        })));
+        // Sort by creation date (newest first)
+        const sortedProducts = [...processedProducts].sort((a, b) => 
+          (b.createdAt || 0) - (a.createdAt || 0)
+        );
 
         // Filter available products and limit to 8
-        const availableProducts = processedProducts
-          .filter((product: Product) => product.availableForSale)
+        const availableProducts = sortedProducts
+          .filter((product) => product.availableForSale)
           .slice(0, 8);
 
-        console.log('Final available products:', availableProducts.map((p: Product) => ({
-          title: p.title,
-          date: p.createdAt ? new Date(p.createdAt).toISOString() : 'N/A'
-        })));
-
         setProducts(availableProducts);
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Failed to load products');
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setError('Failed to load products. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    loadProducts();
   }, []);
 
   if (loading) {
@@ -114,10 +92,10 @@ export default function FeaturedProducts() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-8"></div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="space-y-4">
-                  <div className="h-64 bg-gray-200 rounded"></div>
+                  <div className="aspect-square bg-gray-200 rounded"></div>
                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                   <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                 </div>
@@ -153,7 +131,7 @@ export default function FeaturedProducts() {
           </Link>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-x-3 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard 
               key={product.id} 

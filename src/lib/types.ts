@@ -136,7 +136,7 @@ export interface Product {
   variants: ProductVariant[];
   variantId: string;
   merchandiseId: string;
-  selectedVariant?: ProductVariant;
+  selectedVariant?: ProductVariant | null;
   selectedOptions?: Record<string, string>;
   // For backward compatibility
   img?: string;

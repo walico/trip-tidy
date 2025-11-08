@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -35,7 +36,9 @@ interface Collection {
   products: Product[];
 }
 
-function CollectionDetailContent({ id }: { id: string }) {
+export default function CollectionDetailPage() {
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { addToCart } = useCart();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -221,9 +224,3 @@ function CollectionDetailContent({ id }: { id: string }) {
   );
 }
 
-// Server component that handles the params
-export default async function CollectionDetailPage({ params }: { params: { id: string } }) {
-  // In Next.js 15.5.6, we can directly access params.id in an async component
-  const { id } = await Promise.resolve(params);
-  return <CollectionDetailContent id={id} />;
-}

@@ -144,7 +144,7 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
           <div className="mt-1">
             {hasSale ? (
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-[var(--color-primary)]">
+                <span className="text-xl font-bold text-(--color-primary)">
                   {formatPrice(product.price)}
                 </span>
                 <span className="text-xs line-through text-gray-200">
@@ -152,7 +152,7 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
                 </span>
               </div>
             ) : (
-              <span className="text-xl font-bold text-[var(--color-primary)]">
+              <span className="text-xl font-bold text-(--color-primary)cle">
                 {formatPrice(product.price)}
               </span>
             )}

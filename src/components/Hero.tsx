@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { motion, useTransform, useViewportScroll } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Navigation, Pagination } from 'swiper/modules';
 import 'swiper/css';
@@ -11,7 +11,16 @@ import 'swiper/css/effect-fade';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
-const slides = [
+interface Slide {
+  id: number;
+  image: string;
+  title: string;
+  subtitle: string;
+  button1: string;
+  button2: string;
+}
+
+const slides: Slide[] = [
   {
     id: 1,
     image: "/images/bg1.jpg",
@@ -39,33 +48,38 @@ const slides = [
 ];
 
 export default function Hero() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isHoverDevice, setIsHoverDevice] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useViewportScroll();
+  const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
   
   useEffect(() => {
-    const hasHover = typeof window !== 'undefined' ? 
-      window.matchMedia('(hover: hover)').matches : 
-      false;
-    setIsHoverDevice(hasHover);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!hasHover) return;
-      
-      setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 20,
-        y: (e.clientY / window.innerHeight - 0.5) * 20
-      });
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('mousemove', handleMouseMove);
-      return () => window.removeEventListener('mousemove', handleMouseMove);
-    }
+    setIsMounted(true);
+    return () => setIsMounted(false);
   }, []);
+
+  const handleSlideChange = (swiper: any) => {
+    setActiveIndex(swiper.realIndex);
+  };
+
+ const slideVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.1,
+      duration: 0.5,
+      ease: "easeOut" as const
+    }
+  })
+};
 
   return (
     <motion.section 
-      className="relative overflow-hidden"
+      ref={containerRef}
+      className="relative overflow-hidden bg-gray-100"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
@@ -76,82 +90,84 @@ export default function Hero() {
         loop={true}
         speed={1000}
         autoplay={{
-          delay: 5000,
+          delay: 8000,
           disableOnInteraction: false,
         }}
+        onSlideChange={handleSlideChange}
         pagination={{
           clickable: true,
           el: '.hero-pagination',
-          renderBullet: function (index: number, className: string) {
-            return `<span class="${className} inline-block w-2.5 h-2.5 mx-1 rounded-full bg-white/50 transition-all duration-300"></span>`;
+          bulletClass: 'hero-bullet',
+          bulletActiveClass: 'hero-bullet-active',
+          renderBullet: (index, className) => {
+            return `<span class="${className} inline-block w-3 h-3 mx-1.5 rounded-full bg-white/50 transition-all duration-300 hover:bg-white/80"></span>`;
           },
         }}
         navigation={{
           nextEl: '.hero-swiper-button-next',
           prevEl: '.hero-swiper-button-prev',
         }}
-        className="h-[70vh] min-h-[500px] sm:min-h-[600px] w-full"
+        className="h-[70vh] min-h-[600px] w-full relative"
       >
-        {slides.map((slide) => (
+        {slides.map((slide, index) => (
           <SwiperSlide key={slide.id} className="relative">
-            <motion.div 
-              className="absolute inset-0"
-              animate={isHoverDevice ? {
-                x: mousePosition.x * 0.5,
-                y: mousePosition.y * 0.5,
-                scale: 1.1
-              } : {}}
-              transition={{ 
-                type: 'spring', 
-                stiffness: 50, 
-                damping: 20,
-              }}
-            >
-              <Image
-                src={slide.image}
-                alt=""
-                fill
-                priority
-                className="object-cover"
-                sizes="100vw"
-              />
-            </motion.div>
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0">
+                <Image
+                  src={slide.image}
+                  alt=""
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="100vw"
+                  quality={90}
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/30 to-transparent" />
+                <div className="absolute inset-0 bg-black/30 mix-blend-multiply" />
+              </div>
+            </div>
             
-            <div className="absolute inset-0 bg-black/30" />
-            
-            <div className="absolute inset-0 flex items-center justify-center text-center px-4 sm:px-6">
-              <div className="max-w-4xl w-full px-2">
-                <motion.h1 
-                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight text-white leading-[1]"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.8 }}
+            <div className="absolute inset-0 flex items-center justify-center text-center px-4 sm:px-6 lg:px-8">
+              <div className="max-w-5xl w-full px-2 sm:px-4">
+                <motion.div
+                  className="space-y-4 sm:space-y-6"
+                  initial="hidden"
+                  animate={activeIndex === index ? "visible" : "hidden"}
+                  custom={0}
+                  variants={slideVariants}
                 >
-                  {slide.title}
-                </motion.h1>
-                <motion.p 
-                  className="mt-4 text-white/90 text-sm sm:text-base px-2 sm:px-0"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.8 }}
-                >
-                  {slide.subtitle}
-                </motion.p>
+                  <motion.h1 
+                    className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight tracking-tight drop-shadow-lg"
+                    custom={1}
+                    variants={slideVariants}
+                  >
+                    {slide.title}
+                  </motion.h1>
+                  <motion.p 
+                    className="max-w-3xl mx-auto text-white/90 text-base sm:text-lg md:text-xl font-light leading-relaxed"
+                    custom={2}
+                    variants={slideVariants}
+                  >
+                    {slide.subtitle}
+                  </motion.p>
+                </motion.div>
+
                 <motion.div 
-                  className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto px-2 sm:px-0"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.8 }}
+                  className="mt-4 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto px-2"
+                  custom={3}
+                  variants={slideVariants}
+                  initial="hidden"
+                  animate={activeIndex === index ? "visible" : "hidden"}
                 >
                   <Link 
                     href="/products" 
-                    className="w-full sm:w-auto text-center bg-[var(--color-primary)] text-white px-6 py-3 sm:px-8 sm:py-3 text-sm sm:text-base font-medium rounded-md transition-colors hover:bg-[var(--color-primary-dark)]"
+                    className="w-full sm:w-auto text-center bg-[color:var(--primary)] text-white px-8 py-3.5 text-sm sm:text-base font-medium rounded-full transition-all duration-300 hover:opacity-90 hover:shadow-lg hover:scale-105 transform"
                   >
                     {slide.button1}
                   </Link>
                   <Link 
                     href="/collections" 
-                    className="w-full sm:w-auto text-center border border-white text-white hover:border-none hover:bg-[var(--color-primary)] hover:text-white transition-colors px-6 py-3 sm:px-8 sm:py-3 text-sm sm:text-base font-medium rounded-md"
+                    className="w-full sm:w-auto text-center border-2 border-white text-white hover:bg-white/10 transition-all duration-300 px-8 py-3.5 text-sm sm:text-base font-medium rounded-full hover:shadow-lg hover:scale-105 transform"
                   >
                     {slide.button2}
                   </Link>
@@ -162,20 +178,63 @@ export default function Hero() {
         ))}
 
         {/* Navigation Buttons */}
-        <div className="hero-swiper-button-prev absolute left-4 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white/20 hover:bg-white/30 w-10 h-10 rounded-full flex items-center justify-center transition-colors">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="hero-swiper-button-prev absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white/10 backdrop-blur-sm hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </div>
-        <div className="hero-swiper-button-next absolute right-4 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white/20 hover:bg-white/30 w-10 h-10 rounded-full flex items-center justify-center transition-colors">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="hero-swiper-button-next absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white/10 backdrop-blur-sm hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>
 
         {/* Pagination */}
-        <div className="hero-pagination absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center" />
+        <div className="hero-pagination absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center" />
       </Swiper>
+
+      {/* Scroll indicator */}
+      <motion.div 
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white text-sm font-medium flex flex-col items-center space-y-2"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5, duration: 0.8 }}
+      >
+        <span className="block animate-bounce">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </span>
+        <span>Scroll to explore</span>
+      </motion.div>
+      
+      <style jsx global>{`
+        .hero-bullet {
+          width: 10px;
+          height: 10px;
+          opacity: 0.7;
+          transition: all 0.3s ease;
+        }
+        .hero-bullet-active {
+          width: 30px;
+          background: white !important;
+          opacity: 1;
+          border-radius: 4px;
+        }
+        .hero-swiper-button-next:after,
+        .hero-swiper-button-prev:after {
+          content: '' !important;
+        }
+        @media (max-width: 640px) {
+          .hero-bullet {
+            width: 8px;
+            height: 8px;
+          }
+          .hero-bullet-active {
+            width: 24px;
+          }
+        }
+      `}</style>
     </motion.section>
   );
 }

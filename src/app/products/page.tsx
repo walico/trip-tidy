@@ -384,7 +384,7 @@ export default function ProductsPage() {
               onClick={() => setSelectedCategory('all')}
               className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${
                 selectedCategory === 'all'
-                  ? 'bg-[var(--color-primary)] text-white'
+                  ? 'bg-[color-primary] text-white'
                   : 'bg-white text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -399,7 +399,7 @@ export default function ProductsPage() {
                   onClick={() => setSelectedCategory(collection.handle)}
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium capitalize cursor-pointer ${
                     selectedCategory === collection.handle
-                      ? 'bg-[var(--color-primary)] text-white'
+                      ? 'bg-[color-primary] text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -600,7 +600,7 @@ export default function ProductsPage() {
                         <div className="mt-1">
                           {hasSale ? (
                             <div className="flex items-center gap-2">
-                              <span className="text-xl font-bold text-[var(--color-primary)]">
+                              <span className="text-xl font-bold text-(--color-primary)">
                                 {formatPrice(product.price)}
                               </span>
                               <span className="text-xs line-through text-gray-400">
@@ -608,7 +608,7 @@ export default function ProductsPage() {
                               </span>
                             </div>
                           ) : (
-                            <span className="text-xl font-bold text-[var(--color-primary)]">
+                            <span className="text-xl font-bold text-(--color-primary)">
                               {formatPrice(product.price)}
                             </span>
                           )}
@@ -698,7 +698,7 @@ export default function ProductsPage() {
                             onClick={() => paginate(pageNum)}
                             className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                               currentPage === pageNum
-                                ? 'z-10 bg-primary text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+                                ? 'z-10 bg-primary text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-primary'
                                 : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
                             }`}
                             aria-current={currentPage === pageNum ? 'page' : undefined}

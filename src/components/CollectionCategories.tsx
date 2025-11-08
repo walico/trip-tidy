@@ -128,7 +128,7 @@ export default function CollectionCategories() {
                       href={`/collections/${collection.handle}`}
                       className="group block bg-white rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"
                     >
-                      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-lg bg-gray-100">
+                      <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-lg bg-gray-100">
                         <Image
                           src={collection.image}
                           alt={collection.title}
@@ -155,7 +155,7 @@ export default function CollectionCategories() {
                   onClick={() => setCurrentIndex(index)}
                   className={`h-1 rounded-full transition-colors cursor-pointer ${
                     index === currentIndex
-                      ? 'bg-[var(--color-primary)] w-8'
+                      ? 'bg-(--color-primary) w-8'
                       : 'w-1 bg-gray-300 hover:bg-gray-400'
                   }`}
                   aria-label={`Go to category ${index + 1}`}
@@ -173,7 +173,7 @@ export default function CollectionCategories() {
                   href={`/collections/${collection.handle}`}
                   className="group block bg-primary/10 rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"
                 >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-lg bg-white/50">
+                  <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-lg bg-white/50">
                     <Image
                       src={collection.image}
                       alt={collection.title}
@@ -182,7 +182,7 @@ export default function CollectionCategories() {
                     />
                   </div>
                   <div className="p-4">
-                    <div className="font-medium text-center text-gray-500 group-hover:text-[var(--color-primary)] transition-colors">
+                    <div className="font-medium text-center text-gray-500 group-hover:text-(--color-primary) transition-colors">
                       {collection.title}
                     </div>
                   </div>

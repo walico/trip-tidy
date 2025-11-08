@@ -327,7 +327,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
             <div className="mt-6 border-t border-gray-200 pt-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex items-start">
-                  <div className="flex-shrink-0 bg-primary/10 p-2 rounded-full">
+                  <div className="shrink-0 bg-primary/10 p-2 rounded-full">
                     <Truck className="h-5 w-5 text-primary" />
                   </div>
                   <div className="ml-3">
@@ -336,7 +336,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <div className="flex-shrink-0 bg-primary/10 p-2 rounded-full">
+                  <div className="shrink-0 bg-primary/10 p-2 rounded-full">
                     <Shield className="h-5 w-5 text-primary" />
                   </div>
                   <div className="ml-3">
