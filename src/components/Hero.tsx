@@ -161,7 +161,7 @@ export default function Hero() {
                 >
                   <Link 
                     href="/products" 
-                    className="w-full sm:w-auto text-center bg-[color:var(--primary)] text-white px-8 py-3.5 text-sm sm:text-base font-medium rounded-full transition-all duration-300 hover:opacity-90 hover:shadow-lg hover:scale-105 transform"
+                    className="w-full sm:w-auto text-center bg-(--primary) text-white px-8 py-3.5 text-sm sm:text-base font-medium rounded-full transition-all duration-300 hover:opacity-90 hover:shadow-lg hover:scale-105 transform"
                   >
                     {slide.button1}
                   </Link>

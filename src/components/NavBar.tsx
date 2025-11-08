@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
-import Cart from './Cart';
 
 interface NavLinkProps {
   href: string;
@@ -37,16 +36,21 @@ const NavBar = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const cartRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { itemCount, isCartOpen, openCart, closeCart } = useCart();
+  const { itemCount } = useCart();
+  const [mounted, setMounted] = useState(false);
 
-  // Close cart and menu when clicking outside
+  // This effect only runs on the client after the component mounts
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Don't render the cart count during SSR or before the component mounts
+  const showCartCount = mounted && itemCount > 0;
+
+  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (cartRef.current && !cartRef.current.contains(event.target as Node)) {
-        closeCart();
-      }
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
@@ -67,16 +71,6 @@ const NavBar = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-
-  const toggleCart = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (isCartOpen) {
-      closeCart();
-    } else {
-      openCart();
-    }
-  };
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -146,30 +140,31 @@ const NavBar = () => {
             </svg>
           </button>
           
-          <button 
-            className="relative text-gray-700 hover:text-gray-900"
-            onClick={(e) => {
-              e.preventDefault();
-              if (isCartOpen) {
-                closeCart();
-              } else {
-                openCart();
-              }
-              closeMenu();
-            }}
-            aria-label="Cart"
+          <Link 
+            href="/cart" 
+            className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none relative"
+            aria-label={`Cart (${itemCount})`}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="9" cy="21" r="1"/>
-              <circle cx="20" cy="21" r="1"/>
-              <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+              />
             </svg>
-            {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-(--color-primary) text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            {showCartCount && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                 {itemCount}
               </span>
             )}
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -211,65 +206,31 @@ const NavBar = () => {
                 <circle cx="12" cy="7" r="4"/>
               </svg>
             </Link>
-            <div className="relative">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isCartOpen) {
-                    closeCart();
-                  } else {
-                    openCart();
-                  }
-                }}
-                className="relative text-gray-700 hover:text-gray-900 p-2"
-                aria-label="Cart"
-                aria-expanded={isCartOpen}
+            <Link 
+              href="/cart" 
+              className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none relative"
+              aria-label={`Cart (${itemCount})`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M3 3h2l3.6 7.59a2 2 0 0 0 1.8 1.18H19a2 2 0 0 0 2-1.5l1-4H6"></path>
-                </svg>
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-(--color-primary) text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </button>
-            
-              {/* Cart Dropdown */}
-              <div 
-                className={`fixed inset-0 z-50 transition-opacity duration-300 ${
-                  isCartOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-                }`}
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  zIndex: 50,
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  transition: 'opacity 300ms ease-in-out, visibility 300ms ease-in-out',
-                }}
-                onClick={closeCart}
-              >
-                <div 
-                  ref={cartRef}
-                  className={`absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
-                    isCartOpen ? 'translate-x-0' : 'translate-x-full'
-                  }`}
-                  style={{
-                    maxHeight: '100vh',
-                    overflowY: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Cart onClose={closeCart} />
-                </div>
-              </div>
-            </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
+              </svg>
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </div>
@@ -287,18 +248,8 @@ const NavBar = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search..."
-                    className="w-full text-lg py-2 px-1 border-0 border-b-2 border-black text-gray-500 font-regular placeholder-gray-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <button 
-                    type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                    aria-label="Search"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="7"/>
-                      <path d="m21 21-4.3-4.3"/>
-                    </svg>
-                  </button>
                 </div>
               </form>
               <button 

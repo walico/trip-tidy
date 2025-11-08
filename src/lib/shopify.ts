@@ -99,18 +99,33 @@ export async function fetchProducts(first: number = 20) {
       }
     `;
 
-    const response = await shopifyClient.request<any>(query, {
+    interface ProductsResponse {
+      data?: {
+        products: {
+          edges: Array<{
+            node: any;
+          }>;
+        };
+      };
+      products?: {
+        edges: Array<{
+          node: any;
+        }>;
+      };
+    }
+
+    const response = await shopifyClient.request<ProductsResponse>(query, {
       variables: { first },
     });
 
     // Extract products from the response
-    const products = response?.data?.products || response?.products;
+    const products = response?.data?.products;
     if (!products) {
       console.warn('No products found in the response');
       return [];
     }
 
-    return products.edges.map((edge: any) => edge.node);
+    return products.edges.map((edge) => edge.node);
   } catch (error) {
     console.error('Error fetching products:', error);
     return [];
