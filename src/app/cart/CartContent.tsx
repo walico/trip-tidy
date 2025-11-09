@@ -176,246 +176,116 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <h1 className="text-2xl font-medium mb-8 text-center md:text-left">YOUR CART</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          {cart.lines.edges.map(({ node: item }: any) => (
-            <div key={item.id} className="flex flex-col md:flex-row border-b border-gray-200 py-6">
-              <div className="w-full md:w-1/4 mb-4 md:mb-0">
-                <div className="relative aspect-square bg-gray-100">
-                  {isChangingVariant[item.id] ? (
-                    <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-                    </div>
-                  ) : (
-                    <Image
-                      src={
-                        item.merchandise.product.variants?.edges.find(
-                          (edge: { node: { id: string } }) => edge.node.id === item.merchandise.id
-                        )?.node.image?.url ||
-                        item.merchandise.product.images?.edges[0]?.node.url ||
-                        '/placeholder-product.jpg'
-                      }
-                      alt={
-                        item.merchandise.product.variants?.edges.find(
-                          (edge: { node: { id: string } }) => edge.node.id === item.merchandise.id
-                        )?.node.image?.altText ||
-                        item.merchandise.product.images?.edges[0]?.node.altText ||
-                        item.merchandise.product.title
-                      }
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
-                    />
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex-1 md:pl-6">
-                <div className="flex flex-col h-full">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium mb-1">
-                      <Link href={`/products/${item.merchandise.product.handle}`} className="hover:underline">
-                        {item.merchandise.product.title}
-                      </Link>
-                    </h3>
-                    {item.merchandise.product.options && item.merchandise.product.options.length > 0 && item.merchandise.product.variants?.edges.length > 0 ? (
-                      <div className="space-y-3 mt-2">
-                        {item.merchandise.product.options.map((option: { name: string; values: string[] }) => (
-                          <div key={`${option.name}-${option.values.join('-')}`} className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              {option.name}
-                            </label>
-                            <select
-                              value={item.merchandise.selectedOptions?.find((opt: { name: string; value: string }) => opt.name === option.name)?.value || option.values[0] || ''}
-                              onChange={async (e) => {
-                                try {
-                                  // Initialize base selected options from current variant or create new array
-                                  const currentSelectedOptions = item.merchandise.selectedOptions || 
-                                    item.merchandise.product.options.map((opt: { name: string; values: string[] }) => ({
-                                      name: opt.name,
-                                      value: opt.values[0]
-                                    }));
+ <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+  <h1 className="text-2xl font-bold text-gray-900 mb-8 text-center lg:text-left">Your Cart</h1>
 
-                                  // Create new selected options with the changed value
-                                  const newSelectedOptions = currentSelectedOptions.map((opt: { name: string; value: string }) => 
-                                    opt.name === option.name 
-                                      ? { ...opt, value: e.target.value }
-                                      : opt
-                                  );
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    {/* Cart Items */}
+    <div className="lg:col-span-2 space-y-6">
+      {cart.lines.edges.map(({ node: item }) => (
+        <div key={item.id} className="bg-white transition-shadow flex flex-col md:flex-row p-4 md:p-6 border-b border-gray-100">
+          
+          {/* Product Image */}
+          <div className="relative w-full md:w-1/4 h-32 md:h-36 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+            <Image
+              src={item.merchandise.product.images?.edges[0]?.node.url || '/placeholder-product.jpg'}
+              alt={item.merchandise.product.title}
+              fill
+              className="object-cover"
+            />
+          </div>
 
-                                  // Find the variant that matches all selected options
-                                  const newVariant = item.merchandise.product.variants?.edges.find(({ node }: { node: any }) => {
-                                    // Check if the variant has the selectedOptions at the root level
-                                    const variantOptions = node.selectedOptions || [];
-                                    return newSelectedOptions.every((selectedOpt: { name: string; value: string }) => 
-                                     variantOptions.some((variantOpt: { name: string; value: string }) => 
-                                      selectedOpt.name === variantOpt.name && 
-                                      selectedOpt.value === variantOpt.value
-                                    )
-                                  );
-                                  })?.node;
-                                  
-                                  console.log('Variant selection:', {
-                                    currentSelectedOptions,
-                                    newSelectedOptions,
-                                    newVariant
-                                  });
-
-                                  if (newVariant) {
-                                    setIsChangingVariant(prev => ({ ...prev, [item.id]: true }));
-                                    
-                                    // Use the full cart line ID as provided by Shopify
-                                    const cartLineId = item.id;
-                                    
-                                    // Update the line item to the new variant
-                                    const response = await fetch('/api/cart', {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        cartId: cart.id,
-                                        items: [{
-                                          id: cartLineId,
-                                          merchandiseId: newVariant.id,
-                                          quantity: item.quantity
-                                        }]
-                                      })
-                                    });
-
-                                    let data;
-                                    try {
-                                      data = await response.json();
-                                    } catch (jsonError) {
-                                      console.error('Failed to parse JSON response:', jsonError);
-                                      throw new Error('Invalid server response');
-                                    }
-                                    
-                                    if (!response.ok) {
-                                      const errorMessage = data?.error || 'Failed to update variant';
-                                      console.error('Server error:', errorMessage);
-                                      throw new Error(errorMessage);
-                                    }
-                                    
-                                    if (!data?.success || !data?.cart) {
-                                      console.error('Invalid response structure:', data);
-                                      throw new Error('Invalid response from server');
-                                    }
-                                    
-                                    setCart(data.cart);
-                                  }
-                                } catch (error: any) {
-                                  console.error('Error updating variant:', error);
-                                  alert(error.message || 'Failed to update variant. Please try again.');
-                                } finally {
-                                  setIsChangingVariant(prev => ({ ...prev, [item.id]: false }));
-                                }
-                              }}
-                              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-black focus:outline-none focus:ring-black sm:text-sm"
-                            >
-                              {option.values.map((value) => (
-                                <option key={value} value={value}>
-                                  {value}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
-                    ) : item.merchandise.title !== 'Default Title' && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {item.merchandise.title}
-                      </p>
-                    )}
-                    <p className="text-lg font-medium mt-2">
-                      {formatPrice(item.merchandise.priceV2.amount, item.merchandise.priceV2.currencyCode)}
-                      {item.quantity > 1 && (
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({(parseFloat(item.merchandise.priceV2.amount) * item.quantity).toFixed(2)} {item.merchandise.priceV2.currencyCode})
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={isUpdating[item.id] || item.quantity <= 1}
-                        className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:bg-transparent"
-                      >
-                        −
-                      </button>
-                      <span className="px-3 py-1 text-center w-10">
-                        {isUpdating[item.id] ? '...' : item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        disabled={isUpdating[item.id]}
-                        className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
-                      >
-                        +
-                      </button>
-                    </div>
-                    
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      disabled={isUpdating[item.id]}
-                      className="text-sm text-gray-500 hover:text-red-600 flex items-center"
-                    >
-                      <Trash2 size={16} className="mr-1" />
-                      Remove
-                    </button>
-                  </div>
-                </div>
-                
-              </div>
+          {/* Product Details */}
+          <div className="flex-1 md:pl-6 flex flex-col justify-between mt-4 md:mt-0">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">
+                <Link href={`/products/${item.merchandise.product.handle}`} className="hover:underline">
+                  {item.merchandise.product.title}
+                </Link>
+              </h3>
+              {item.merchandise.selectedOptions && (
+                <ul className="mt-1 text-sm text-gray-600 space-y-1">
+                  {item.merchandise.selectedOptions.map((opt) => (
+                    <li key={opt.name}>{opt.name}: {opt.value}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-gray-800 font-medium mt-2">
+                {formatPrice(item.merchandise.priceV2.amount, item.merchandise.priceV2.currencyCode)}
+                {item.quantity > 1 && (
+                  <span className="text-gray-500 ml-2">
+                    ({(parseFloat(item.merchandise.priceV2.amount) * item.quantity).toFixed(2)})
+                  </span>
+                )}
+              </p>
             </div>
-          ))}
+
+            {/* Quantity + Remove */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  disabled={isUpdating[item.id] || item.quantity <= 1}
+                  className="px-3 py-1 hover:bg-gray-100 disabled:opacity-30 cursor-pointer text-gray-600"
+                >−</button>
+                <span className="px-3 py-1 w-10 text-center text-gray-600">{isUpdating[item.id] ? '...' : item.quantity}</span>
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  disabled={isUpdating[item.id]}
+                  className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-gray-600"
+                >+</button>
+              </div>
+
+              <button
+                onClick={() => removeItem(item.id)}
+                disabled={isUpdating[item.id]}
+                className="text-sm text-gray-500 hover:text-red-600 flex items-center cursor-pointer"
+              >
+                <Trash2 size={16} className="mr-1" />
+              </button>
+            </div>
+          </div>
+
         </div>
-        
-        <div className="lg:pl-8">
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h2 className="text-lg font-medium mb-4">Order Summary</h2>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatPrice(cart.cost.subtotalAmount.amount, cart.cost.subtotalAmount.currencyCode)}</span>
-              </div>
-              
-              <div className="border-t pt-4">
-                <div className="flex justify-between font-medium">
-                  <span>Total</span>
-                  <span>{formatPrice(cart.cost.totalAmount.amount, cart.cost.totalAmount.currencyCode)}</span>
-                </div>
-              </div>
-              
-              <div className="pt-4">
-                <Button
-                  className="w-full bg-black hover:bg-gray-800"
-                  asChild
-                >
-                  <a href={cart.checkoutUrl} className="block text-center">
-                    Proceed to Checkout
-                  </a>
-                </Button>
-                
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Shipping and taxes calculated at checkout.
-                </p>
-                
-                <div className="mt-6 text-center">
-                  <Link href="/products" className="text-sm text-gray-600 hover:underline">
-                    Continue Shopping
-                  </Link>
-                </div>
-              </div>
-            </div>
+      ))}
+    </div>
+
+    {/* Order Summary */}
+    <div>
+      <div className="bg-gray-50 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-gray-600 mb-4">Order Summary</h2>
+        <div className="space-y-4">
+          <div className="flex justify-between text-gray-600">
+            <span>Subtotal</span>
+            <span>{formatPrice(cart.cost.subtotalAmount.amount, cart.cost.subtotalAmount.currencyCode)}</span>
+          </div>
+          <div className="border-t pt-4 font-medium flex justify-between text-gray-800">
+            <span>Total</span>
+            <span>{formatPrice(cart.cost.totalAmount.amount, cart.cost.totalAmount.currencyCode)}</span>
+          </div>
+
+          <a
+            href={cart.checkoutUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full mt-4 bg-[#be7960cc] text-white py-3 rounded-lg text-center font-medium transition-colors hover:bg-[#be7960cc]/80"
+          >
+            Proceed to Checkout
+          </a>
+
+
+          <p className="text-xs text-gray-500 mt-2 text-center">Shipping and taxes calculated at checkout.</p>
+
+          <div className="mt-4 text-center">
+            <Link href="/products" className="text-sm text-gray-600 hover:underline">Continue Shopping</Link>
           </div>
         </div>
       </div>
     </div>
+
+  </div>
+</div>
+
   );
 }

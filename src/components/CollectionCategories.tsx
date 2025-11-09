@@ -17,15 +17,15 @@ export default function CollectionCategories() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Fetch collections from Shopify
   useEffect(() => {
     async function loadCollections() {
       try {
         setLoading(true);
-        if (!shopifyClient) {
-          return;
-        }
-        const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, { variables: { first: 10 } });
+        if (!shopifyClient) return;
+
+        const { data } = await shopifyClient.request(GET_COLLECTIONS_QUERY, {
+          variables: { first: 10 }
+        });
 
         const fetchedCollections = data.collections.edges.map((edge: any) => {
           const collection = edge.node;
@@ -33,18 +33,17 @@ export default function CollectionCategories() {
             id: collection.id,
             title: collection.title,
             handle: collection.handle,
-            image: collection.image?.url || '/images/shopping_cart.jpg', // Fallback image
+            image: collection.image?.url || '/images/shopping_cart.jpg',
           };
         });
 
         setCollections(fetchedCollections);
-      } catch (error) {
-        // Keep empty or use fallback data
+      } catch {
+        // optional: fallback handling
       } finally {
         setLoading(false);
       }
     }
-
     loadCollections();
   }, []);
 
@@ -60,27 +59,19 @@ export default function CollectionCategories() {
     );
   }, [collections.length]);
 
-  // Auto slide effect - only when carousel is active
   useEffect(() => {
-    if (collections.length <= 5) return; // Don't auto-slide for static grid
+    if (collections.length <= 5) return;
 
-    const slideInterval = setInterval(() => {
-      nextSlide();
-    }, 5000); // Change slide every 5 seconds
-
+    const slideInterval = setInterval(nextSlide, 5000);
     return () => clearInterval(slideInterval);
   }, [nextSlide, collections.length]);
 
   if (loading || collections.length === 0) {
     return (
       <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-12">
-          <div className="flex items-center justify-center mb-8">
-            <h2 className="font-semibold text-4xl text-gray-700">Shop by Category</h2>
-          </div>
-          <div className="text-center">
-            <p className="text-gray-500">Loading categories...</p>
-          </div>
+        <div className="mx-auto max-w-7xl px-4 py-12 text-center">
+          <h2 className="font-semibold text-4xl text-gray-700 mb-4">Shop by Category</h2>
+          <p className="text-gray-500">Loading categories...</p>
         </div>
       </section>
     );
@@ -94,39 +85,39 @@ export default function CollectionCategories() {
         </div>
 
         {collections.length > 5 ? (
-          // Carousel for more than 5 collections
+          // Carousel version
           <div className="relative group">
-            {/* Navigation arrows */}
+            {/* Prev Arrow */}
             <button
               onClick={prevSlide}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 p-2 rounded-full bg-primary/10 shadow-primary/20 hover:bg-primary/20 text-primary"
-              aria-label="Previous category"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 p-2 rounded-full bg-[#be7960cc]/10 hover:bg-[#be7960cc]/20 text-[#be7960cc]"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
             </button>
+
+            {/* Next Arrow */}
             <button
               onClick={nextSlide}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 p-2 rounded-full bg-primary/10 shadow-primary/20 hover:bg-primary/20 text-primary"
-              aria-label="Next category"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 opacity-0 group-hover:opacity-100 transition-opacity z-10 p-2 rounded-full bg-[#be7960cc]/10 hover:bg-[#be7960cc]/20 text-[#be7960cc]"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none">
                 <path d="M9 18l6-6-6-6"/>
               </svg>
             </button>
 
-            {/* Carousel container */}
+            {/* Carousel Container */}
             <div className="overflow-hidden">
               <div
-                className="flex transition-transform duration-500 ease-in-out gap-6"
+                className="flex transition-transform duration-500 ease-in-out gap-0 sm:gap-6"
                 style={{ transform: `translateX(-${currentIndex * (100 / Math.min(collections.length, 7))}%)` }}
               >
                 {collections.map((collection) => (
                   <div key={collection.id} className="w-52 shrink-0">
                     <Link
                       href={`/collections/${collection.handle}`}
-                      className="group block bg-white rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"
+                      className="group block bg-white rounded-lg border border-[#be7960cc] transition-all duration-200 h-full md:hover:shadow-lg md:hover:shadow-[#be7960cc]/40"
                     >
                       <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-lg bg-gray-100">
                         <Image
@@ -137,7 +128,7 @@ export default function CollectionCategories() {
                         />
                       </div>
                       <div className="p-4">
-                        <div className="font-thin uppercase text-center text-gray-500 group-hover:text-primary transition-colors">
+                        <div className="text-center text-gray-600 group-hover:text-[#be7960cc] transition-colors uppercase text-sm font-thin">
                           {collection.title}
                         </div>
                       </div>
@@ -147,33 +138,30 @@ export default function CollectionCategories() {
               </div>
             </div>
 
-            {/* Dots indicator */}
+            {/* Dots */}
             <div className="flex justify-center mt-8 space-x-2">
               {collections.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentIndex(index)}
-                  className={`h-1 rounded-full transition-colors cursor-pointer ${
-                    index === currentIndex
-                      ? 'bg-(--color-primary) w-8'
-                      : 'w-1 bg-gray-300 hover:bg-gray-400'
+                  className={`h-1 rounded-full transition-all ${
+                    index === currentIndex ? 'bg-[#be7960cc] w-8' : 'bg-gray-300 w-1'
                   }`}
-                  aria-label={`Go to category ${index + 1}`}
                 />
               ))}
             </div>
           </div>
         ) : (
-          // Static grid for 5 or fewer collections
+          // Static grid version
           <div className="flex justify-center">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full max-w-4xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-0 sm:gap-6 w-full max-w-4xl">
               {collections.map((collection) => (
                 <Link
                   key={collection.id}
                   href={`/collections/${collection.handle}`}
-                  className="group block bg-primary/10 rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 h-full"
+                  className="group block bg-white rounded-none sm:rounded-lg border border-[#be7960cc] transition-all duration-200 h-full md:hover:shadow-lg md:hover:shadow-[#be7960cc]/40"
                 >
-                  <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-lg bg-white/50">
+                  <div className="relative aspect-4/3 w-full overflow-hidden rounded-none sm:rounded-t-lg bg-white/50">
                     <Image
                       src={collection.image}
                       alt={collection.title}
@@ -182,7 +170,7 @@ export default function CollectionCategories() {
                     />
                   </div>
                   <div className="p-4">
-                    <div className="font-medium text-center text-gray-500 group-hover:text-(--color-primary) transition-colors">
+                    <div className="text-center text-gray-600 group-hover:text-[#be7960cc] transition-colors uppercase text-sm font-light">
                       {collection.title}
                     </div>
                   </div>

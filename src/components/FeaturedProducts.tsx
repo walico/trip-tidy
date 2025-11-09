@@ -43,22 +43,32 @@ export default function FeaturedProducts() {
         }
 
         // Process products to match your Product type
+        // In FeaturedProducts.tsx, update the processedProducts mapping to include all required fields
         const processedProducts = shopifyProducts.map((product: any) => {
           const firstVariant = product.variants?.edges?.[0]?.node;
           const createdAt = product.createdAt || product.publishedAt || new Date().toISOString();
+          const images = product.images?.edges?.map((edge: any) => edge.node.url) || [];
           
           return {
             id: product.id,
             title: product.title,
+            description: product.description || '',
+            handle: product.handle,
+            availableForSale: product.availableForSale !== false,
             price: getProductPrice(product),
             originalPrice: getProductOriginalPrice(product),
-            img: getProductImage(product),
-            handle: product.handle,
+            priceRange: product.priceRange || {
+              minVariantPrice: { amount: getProductPrice(product), currencyCode: 'USD' },
+              maxVariantPrice: { amount: getProductPrice(product), currencyCode: 'USD' }
+            },
+            options: product.options || [],
+            images: images,
+            variants: product.variants?.edges?.map((edge: any) => edge.node) || [],
             variantId: firstVariant?.id || product.id,
             merchandiseId: firstVariant?.id || product.id,
-            rating: 4.5, // Default rating
-            reviewCount: 0, // Default review count
-            availableForSale: product.availableForSale !== false,
+            rating: 4.5,
+            reviewCount: 0,
+            img: getProductImage(product), // Keep for backward compatibility
             createdAt: new Date(createdAt).getTime(),
             rawCreatedAt: product.createdAt || product.publishedAt
           };
@@ -124,7 +134,7 @@ export default function FeaturedProducts() {
           <h2 className="font-semibold text-2xl sm:text-4xl text-gray-700 mb-1 sm:mb-2">Featured Products</h2>
           <Link 
             href="/products" 
-            className="text-sm font-medium text-gray-500 hover:text-primary/80 transition-colors"
+            className="text-sm font-light text-gray-500 hover:text-primary/80 transition-colors hover:underline tracking-wider"
           >
             View all products
             <span aria-hidden="true"> &rarr;</span>

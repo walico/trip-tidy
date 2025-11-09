@@ -34,6 +34,19 @@ const backgroundColors = [
   'bg-[#ffd7be]',
 ];
 
+// Define CTA colors for each background color (adjust for contrast/readability)
+const ctaColors: Record<string, string> = {
+  'bg-[#FFF2EA]': 'text-[#D97706]',   // warm orange
+  'bg-[#EAF2F5]': 'text-[#0C4A6E]',   // dark blue
+  'bg-[#F0F7EE]': 'text-[#15803D]',   // dark green
+  'bg-[#f5f0f4]': 'text-[#7E22CE]',   // purple
+  'bg-[#d3e4e8]': 'text-[#1E3A8A]',   // blue
+  'bg-[#bdb5bd]': 'text-[#831843]',   // deep pink/maroon
+  'bg-[#ffc107]': 'text-[#6B3E00]',   // brownish
+  'bg-[#ffd7be]': 'text-[#B45309]',   // darker orange
+};
+
+
 export default function TopProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,40 +161,53 @@ export default function TopProducts() {
         >
           <div className="grid gap-6 md:grid-cols-2 transition-transform duration-500 ease-in-out">
             {visiblePromos.map((p) => (
-              <div key={p.id} className={`${p.bg} rounded-2xl hover:shadow-md transition-shadow relative h-[320px] sm:h-64 md:h-60 overflow-hidden`}>
-                <div className="relative grid grid-cols-1 md:grid-cols-2 items-center h-full">
-                  {/* Content Section */}
-                  <div className="p-6 sm:p-8 md:p-10 order-2 md:order-1 z-10 bg-linear-gradient-to-t from-black/10 to-transparent md:bg-none">
-                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 md:text-gray-800">{p.title}</h3>
-                    <p className="text-sm sm:text-base text-gray-600 md:text-gray-500 mt-1 sm:mt-2">{p.subtitle}</p>
-                    <Link
-                      href={p.href}
-                      className="mt-4 md:mt-6 inline-flex items-center text-(--color-primary) font-medium group"
-                    >
-                      {p.cta}
-                      <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                      </svg>
-                    </Link>
+              <div
+                key={p.id}
+                className={`${p.bg} rounded-2xl hover:shadow-md transition-shadow relative overflow-hidden`}
+              >
+                <div className="flex flex-col md:flex-row items-center h-full">
+                  
+                  {/* Image Section */}
+                  <div className="relative w-full h-64 md:h-full md:w-1/2 order-1 md:order-2">
+                    <Image
+                      src={p.image}
+                      alt={p.title}
+                      fill
+                      className="object-contain object-center"
+                      sizes="(max-width: 768px) 100vw, 40vw"
+                      priority
+                    />
                   </div>
 
-                  {/* Image Section */}
-                  <div className="relative h-48 md:h-full order-1 md:order-2">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="relative w-full h-full max-h-[100px] md:max-h-none">
-                        <Image
-                          src={p.image}
-                          alt={p.title}
-                          fill
-                          className="object-contain object-center"
-                          sizes="(max-width: 768px) 100vw, 40vw"
-                          priority
+                  {/* Content Section */}
+                  <div className="w-full md:w-1/2 p-6 sm:p-8 md:p-10 order-2 md:order-1 flex flex-col justify-center">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-800">{p.title}</h3>
+                    <p className="text-sm sm:text-base text-gray-600 mt-2">{p.subtitle}</p>
+                    <Link
+                      href={p.href}
+                      className={`mt-4 inline-flex items-center font-medium group ${ctaColors[p.bg] || 'text-primary'}`}
+                    >
+                      {p.cta}
+                      <svg
+                        className={`w-4 h-4 ml-2 transition-transform group-hover:translate-x-1 ${ctaColors[p.bg] || 'text-primary'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
                         />
-                      </div>
-                    </div>
+                      </svg>
+                    </Link>
+
                   </div>
+
                 </div>
               </div>
+
             ))}
           </div>
 

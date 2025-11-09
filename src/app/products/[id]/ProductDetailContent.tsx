@@ -12,9 +12,8 @@ import { formatPrice } from '@/lib/shopify';
 import { Product, ProductVariant } from '@/lib/types';
 
 export default function ProductDetailContent({ product }: { product: Product }) {
-  const { addProductsWithQuantities } = useCart();
-
-  // State for the component
+  const { addToCart } = useCart();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
@@ -23,6 +22,31 @@ export default function ProductDetailContent({ product }: { product: Product }) 
   const [currentVariant, setCurrentVariant] = useState<ProductVariant | null>(
     product.selectedVariant || null
   );
+  
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!currentVariant?.availableForSale || isAddingToCart) return;
+    
+    setIsAddingToCart(true);
+    
+    try {
+      await addToCart({
+        id: product.id,
+        variantId: currentVariant.id,
+        productId: product.id,
+        title: product.title,
+        price: currentVariant.price.amount,
+        image: images[0],
+        merchandiseId: currentVariant.id
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   // Ensure we have at least one image
   const images = useMemo(() => {
@@ -143,39 +167,50 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                   </button>
                 </>
               )}
-              {images.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 space-x-2">
-                  {images.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`h-2 w-2 rounded-full ${i === selectedImage ? 'bg-primary' : 'bg-white/60'}`}
-                      onClick={() => setSelectedImage(i)}
-                      aria-label={`View image ${i + 1}`}
-                    />
-                  ))}
+              
+              {/* Out of Stock */}
+              {!currentVariant?.availableForSale && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white font-medium">Out of Stock</span>
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-7 gap-2 mt-2">
-              {images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative aspect-square overflow-hidden rounded-md border-2 transition-all ${
-                    selectedImage === index ? 'border-primary' : 'border-transparent hover:border-gray-300'
-                  }`}
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.title} view ${index + 1}`}
-                    fill
-                    sizes="(max-width: 1024px) 14.2857vw, 7.1428vw"
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+
+              {/* Thumbnails */}
+              {images?.filter(img => img && (typeof img !== 'string' || img.trim() !== '')).length > 1 && (
+                <div className="p-4 grid grid-cols-4 gap-2">
+                  {images
+                    .filter(img => img && (typeof img !== 'string' || img.trim() !== ''))
+                    .map((image, index) => {
+                      const originalIndex = images.indexOf(image);
+                      const isSelected = selectedImage === originalIndex;
+                      const src = typeof image === 'string' ? image : ''; // Ensure src is string
+
+                      if (!src) return null; // Skip if src is invalid
+
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => setSelectedImage(originalIndex)}
+                          className={`
+                            relative aspect-square rounded-md overflow-hidden
+                            transition-all duration-200
+                            ${isSelected ? 'ring-2 ring-[#be7960cc]' : 'opacity-70 hover:opacity-100'}
+                          `}
+                        >
+                          <Image
+                            src={src}
+                            alt={`${product.title} - ${index + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+
           </div>
 
           {/* Product details */}
@@ -183,38 +218,17 @@ export default function ProductDetailContent({ product }: { product: Product }) 
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{product.title}</h1>
 
             {/* Price and availability */}
-            <div className="mt-4">
-              <div className="flex items-center">
-                <p className="text-3xl font-bold text-gray-900">
-                  {currentVariant?.price ? formatPrice(currentVariant.price.amount, currentVariant.price.currencyCode) : 'Loading...'}
-                </p>
-                {currentVariant?.compareAtPrice && (
-                  <>
-                    <p className="ml-3 text-lg text-gray-500 line-through">
-                      {formatPrice(currentVariant.compareAtPrice.amount, currentVariant.compareAtPrice.currencyCode)}
-                    </p>
-                    <span className="ml-3 rounded bg-red-100 px-2.5 py-0.5 text-sm font-semibold text-red-800">
-                      Save {(
-                        parseFloat(currentVariant.compareAtPrice.amount) - 
-                        parseFloat(currentVariant.price.amount)
-                      ).toFixed(2)} {currentVariant.price.currencyCode}
-                    </span>
-                  </>
+            <div className="mt-1 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-primary">
+                  {formatPrice(currentVariant?.price.amount || '0')}
+                </span>
+                {currentVariant?.compareAtPrice?.amount && (
+                  <span className="text-sm text-gray-400 line-through">
+                    {formatPrice(currentVariant.compareAtPrice.amount)}
+                  </span>
                 )}
               </div>
-              <p className={`mt-2 text-sm ${currentVariant?.availableForSale ? 'text-green-600' : 'text-red-600'}`}>
-                {currentVariant?.availableForSale 
-                  ? currentVariant.quantityAvailable 
-                    ? `In stock (${currentVariant.quantityAvailable} available)` 
-                    : 'In stock'
-                  : 'Out of stock'}
-              </p>
-            </div>
-
-            {/* Description */}
-            <div className="mt-6">
-              <h2 className="text-sm font-medium text-gray-900">Description</h2>
-              <p className="mt-2 text-base text-gray-600">{product.description}</p>
             </div>
 
             {/* Variant selection */}
@@ -257,7 +271,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
             })}
 
             {/* Quantity and Add to Cart */}
-            <div className="mt-8">
+            <div className="mt-6">
               <div className="flex items-center justify-between space-x-4">
                 <div className="flex items-center border rounded-md">
                   <button
@@ -281,25 +295,8 @@ export default function ProductDetailContent({ product }: { product: Product }) 
 
                 <div className="flex">
                   <Button
-                    onClick={() => {
-                      if (!currentVariant) return;
-                      
-                      addProductsWithQuantities([
-                        {
-                          product: {
-                            id: product.id,
-                            variantId: currentVariant.id,
-                            productId: product.id,
-                            title: `${product.title}${currentVariant.title !== 'Default Title' ? ` - ${currentVariant.title}` : ''}`,
-                            price: currentVariant.price.amount,
-                            image: currentVariant.image?.url || product.images[0] || '',
-                            merchandiseId: currentVariant.id,
-                          },
-                          quantity,
-                        },
-                      ]);
-                    }}
-                    disabled={!currentVariant?.availableForSale}
+                    onClick={handleAddToCart}
+                    disabled={!currentVariant?.availableForSale || isAddingToCart}
                     className="rounded-r-none border-r-0 py-2 text-base font-medium bg-[#1a1a1a] text-white hover:bg-[#333] transition-colors cursor-pointer"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
@@ -321,6 +318,15 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Description */}
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <h2 className="text-sm font-medium text-gray-900 mb-3">Description</h2>
+              <div 
+                className="prose prose-sm text-gray-600"
+                dangerouslySetInnerHTML={{ __html: product.description || 'No description available' }}
+              />
             </div>
 
             {/* Shipping & Support */}
