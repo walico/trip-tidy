@@ -137,22 +137,22 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
         </div>
 
         <div className="p-4 flex-1 flex flex-col text-gray-900">
-          <h3 className="text-sm font-medium line-clamp-2 h-10" style={{ letterSpacing: '0.05em' }}>
+          <h3 className="text-sm sm:text-base font-medium leading-tight h-12 line-clamp-2" style={{ letterSpacing: '0.05em' }}>
             {product.title}
           </h3>
 
           <div className="mt-1">
             {hasSale ? (
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-(--color-primary)">
+                <span className="text-[16px] font-bold text-(--color-primary)">
                   {formatPrice(product.price)}
                 </span>
-                <span className="text-xs line-through text-gray-200">
+                <span className="text-[12px] line-through text-gray-200">
                   {formatPrice(product.originalPrice)}
                 </span>
               </div>
             ) : (
-              <span className="text-xl font-bold text-(--color-primary)">
+              <span className="text-[16px] font-bold text-(--color-primary)">
                 {formatPrice(product.price)}
               </span>
             )}
