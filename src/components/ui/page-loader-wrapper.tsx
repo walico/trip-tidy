@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -9,11 +9,16 @@ const PageLoader = dynamic(
   { ssr: false, loading: () => null }
 );
 
-export default function PageLoaderWrapper() {
-  const [isLoading, setIsLoading] = useState(false);
-  const pathname = usePathname();
+function PageLoaderContent() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const url = `${pathname}?${searchParams}`;
+  
+  return <PageLoaderWrapperContent url={url} />;
+}
+
+function PageLoaderWrapperContent({ url }: { url: string }) {
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Function to handle link clicks
@@ -86,4 +91,12 @@ export default function PageLoaderWrapper() {
   }, [isLoading, url]);
 
   return isLoading ? <PageLoader /> : null;
+}
+
+export default function PageLoaderWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <PageLoaderContent />
+    </Suspense>
+  );
 }
