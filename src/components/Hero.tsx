@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useTransform, useViewportScroll } from 'framer-motion';
+import { motion, useTransform, useScroll } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Navigation, Pagination } from 'swiper/modules';
@@ -51,7 +51,10 @@ export default function Hero() {
   const [isMounted, setIsMounted] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useViewportScroll();
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end start']
+  });
   const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
   
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function Hero() {
     <motion.section 
       ref={containerRef}
       className="relative overflow-hidden bg-gray-100"
+      style={{ position: 'relative' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
@@ -119,7 +123,7 @@ export default function Hero() {
                   fill
                   priority
                   className="object-cover"
-                  sizes="100vw"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
                   quality={90}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/30 to-transparent" />

@@ -109,11 +109,15 @@ const NavBar = () => {
             </svg>
           </button>
 
-          <Link href="/cart" className="p-2 text-gray-600 hover:text-gray-900 relative" aria-label={`Cart (${itemCount})`}>
+          <Link 
+            href="/cart" 
+            className="p-2 text-gray-600 hover:text-gray-900 relative" 
+            aria-label={mounted ? `Cart (${itemCount})` : 'Cart'}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
-            {showCartCount && (
+            {mounted && itemCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                 {itemCount}
               </span>

@@ -42,7 +42,6 @@ export default function ProductDetailContent({ product }: { product: Product }) 
         merchandiseId: currentVariant.id
       });
     } catch (error) {
-      console.error('Error adding to cart:', error);
     } finally {
       setIsAddingToCart(false);
     }
@@ -143,7 +142,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                 src={images[selectedImage]}
                 alt={product.title}
                 fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 50vw"
                 className="object-cover"
                 priority
               />
@@ -203,6 +202,7 @@ export default function ProductDetailContent({ product }: { product: Product }) 
                             src={src}
                             alt={`${product.title} - ${index + 1}`}
                             fill
+                            sizes="(max-width: 768px) 20vw, 10vw"
                             className="object-cover"
                           />
                         </button>

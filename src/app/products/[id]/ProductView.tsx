@@ -8,22 +8,16 @@ import { Product, ProductVariant } from '@/lib/types';
 import { shopifyClient, GET_PRODUCT_QUERY } from '@/lib/shopify';
 
 async function fetchProduct(handle: string): Promise<Product | null> {
-  console.log('Fetching product with handle:', handle);
   if (!shopifyClient) {
-    console.error('Shopify client is not initialized');
     return null;
   }
 
   try {
-    console.log('Sending GraphQL request...');
     const { data, errors } = await shopifyClient.request<{ product: any }>(GET_PRODUCT_QUERY, {
       variables: { handle }
     });
 
-    console.log('GraphQL response:', { data, errors });
-
     if (!data?.product) {
-      console.error('No product data received');
       return null;
     }
 
@@ -77,7 +71,6 @@ async function fetchProduct(handle: string): Promise<Product | null> {
       }), {}) || {}
     };
   } catch (error) {
-    console.error('Error fetching product:', error);
     return null;
   }
 }
@@ -97,7 +90,6 @@ export default function ProductView({ productId }: { productId: string }) {
         }
         setProduct(data);
       } catch (error) {
-        console.error('Error loading product:', error);
         router.push('/404');
       } finally {
         setIsLoading(false);
@@ -116,7 +108,6 @@ export default function ProductView({ productId }: { productId: string }) {
   }
 
   if (!product) {
-    // Show a more user-friendly error message
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
@@ -128,7 +119,6 @@ export default function ProductView({ productId }: { productId: string }) {
     );
   }
 
-  // Ensure product has all required properties
   const productWithDefaults: Product = {
     ...product,
     selectedOptions: product.selectedOptions || {},
@@ -136,7 +126,6 @@ export default function ProductView({ productId }: { productId: string }) {
     images: product.images || [],
     variants: product.variants || [],
     options: product.options || [],
-    // Ensure all required fields have default values
     priceRange: product.priceRange || {
       minVariantPrice: { amount: '0', currencyCode: 'USD' },
       maxVariantPrice: { amount: '0', currencyCode: 'USD' }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { PageLoader } from '@/components/ui/page-loader';
 import Footer from '@/components/Footer';
 import TopProducts from '@/components/TopProducts';
 import { shopifyClient, GET_PRODUCTS_QUERY, GET_COLLECTIONS_QUERY, getProductImage, getProductPrice, getProductOriginalPrice } from '@/lib/shopify';
@@ -370,15 +371,7 @@ export default function ProductsPage() {
   };
 
   if (loading) {
-    return (
-      <main className="bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Loading products...</h1>
-          </div>
-        </div>
-      </main>
-    );
+    return <PageLoader />;
   }
 
   if (error) {

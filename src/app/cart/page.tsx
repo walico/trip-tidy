@@ -17,7 +17,6 @@ export default async function CartPage() {
     try {
       cartId = decodeURIComponent(cartId);
     } catch (e) {
-      console.error('Error decoding cart ID:', e);
     }
   }
 
@@ -41,12 +40,9 @@ export default async function CartPage() {
   }
   
   try {
-    console.log('Fetching cart with ID:', cartId); // Debug log
     const cart = await getCart(cartId);
-    console.log('Cart data:', JSON.stringify(cart, null, 2)); // Debug log
     
     if (!cart || !cart.lines?.edges || cart.lines.edges.length === 0) {
-      console.log('Cart is empty or invalid'); // Debug log
       return (
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
@@ -71,7 +67,6 @@ export default async function CartPage() {
 
     
   } catch (error) {
-    console.error('Error fetching cart:', error);
     return (
       <>
         <div className="container mx-auto px-4 py-16 text-center">

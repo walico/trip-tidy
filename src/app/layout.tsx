@@ -4,6 +4,7 @@ import { Providers } from "@/providers/Providers";
 import { Toaster } from 'react-hot-toast';
 import NavBar from "@/components/NavBar";
 import AnnouncementBar from "@/components/AnnouncementBar";
+import PageLoaderWrapper from "@/components/ui/page-loader-wrapper";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,6 +41,7 @@ export default function RootLayout({
       >
         <Providers>
           <AnnouncementBar />
+          <PageLoaderWrapper />
           <NavBar />
           <main className="min-h-[calc(100vh-64px)]">
             {children}

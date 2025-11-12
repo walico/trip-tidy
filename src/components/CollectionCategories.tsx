@@ -124,6 +124,7 @@ export default function CollectionCategories() {
                           src={collection.image}
                           alt={collection.title}
                           fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
@@ -166,6 +167,7 @@ export default function CollectionCategories() {
                       src={collection.image}
                       alt={collection.title}
                       fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>

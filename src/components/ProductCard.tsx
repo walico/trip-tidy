@@ -44,7 +44,6 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
         merchandiseId: product.merchandiseId
       });
     } catch (error) {
-      console.error('Error adding to cart:', error);
     } finally {
       setIsAddingToCart(false);
     }
@@ -68,6 +67,7 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
             alt={product.title}
             width={500}
             height={500}
+            priority
             className={`w-full h-full border border-[#be7960cc] object-cover transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-70' : ''}`}
           />
 

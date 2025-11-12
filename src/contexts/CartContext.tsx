@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+
 
 export interface CartItem {
   id: string;
@@ -68,7 +68,6 @@ const getStoredCartItems = (): CartItem[] => {
     const stored = localStorage.getItem('cartItems');
     return stored ? JSON.parse(stored) : [];
   } catch (e) {
-    console.error('Error reading cart from localStorage:', e);
     return [];
   }
 };
@@ -99,7 +98,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem('cartItems');
           }
         } catch (e) {
-          console.error('Error parsing stored cart items:', e);
           localStorage.removeItem('cartItems');
         }
       }
@@ -146,7 +144,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           document.cookie = `cartId=${encodeURIComponent(storedCartId)};path=/;max-age=31536000`;
         }
       } catch (e) {
-        console.error('Error initializing cart:', e);
       }
 
       // Only try to get cart if we have a cartId (from previous session)
@@ -177,7 +174,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('cartItems');
       }
     } catch (e) {
-      console.error('Error persisting cart data:', e);
     }
   }, [cartId, items]);
 
@@ -185,17 +181,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const getCart = useCallback<() => Promise<void>>(async () => {
     // Only fetch if we have a cartId (meaning cart exists in Shopify)
     if (!cartId) {
-      console.log('No cartId available, skipping cart fetch');
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('Fetching existing cart:', cartId);
       const response = await fetch('/api/cart?cartId=' + encodeURIComponent(cartId));
 
       if (!response.ok) {
-        console.warn('Failed to fetch cart, response not ok:', response.status);
         setCartId(null); // Reset cartId if cart doesn't exist
         return;
       }
@@ -217,15 +210,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             merchandiseId: edge.node.merchandise.id,
           })) || []
         );
-        console.log('Cart loaded successfully:', data.cart.lines?.edges?.length || 0, 'items');
       } else {
-        console.warn('Cart fetch failed or cart not found, resetting cartId');
         setCartId(null);
         localStorage.removeItem('cartId');
       }
     } catch (error) {
-      console.error('Failed to fetch cart:', error);
-      // Don't show error toast on init, as this is normal for new users
       setCartId(null);
       localStorage.removeItem('cartId');
     } finally {
@@ -252,9 +241,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const items = Array.isArray(itemOrItems) ? itemOrItems : [itemOrItems];
       const isMultiple = items.length > 1;
 
-      console.log(`Adding ${isMultiple ? 'multiple' : 'single'} item(s) to cart via API:`, items.map(i => i.variantId));
-      console.log('Current cartId:', cartId);
-
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -267,14 +253,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }),
       });
 
-      console.log('API Response status:', response.status);
       const data = await response.json();
-      console.log('API Response data:', data);
 
       if (data.success && data.cart) {
         // Validate that the cart has a valid ID
         if (!data.cart.id) {
-          console.error('Cart response missing ID:', data.cart);
           throw new Error('Invalid cart response from Shopify');
         }
 
@@ -294,27 +277,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
             merchandiseId: edge.node.merchandise.id,
           })) || []
         );
-
         setIsCartOpen(true);
-        toast.success(isMultiple ? `Added ${items.length} items to cart` : 'Added to cart');
-        console.log('Cart updated successfully:', {
-          cartId: data.cart.id,
-          itemCount: data.cart.lines?.edges?.length || 0,
-          totalQuantity: data.cart.totalQuantity,
-          items: data.cart.lines?.edges?.map((edge: any) => ({
-            title: edge.node.merchandise.product.title,
-            quantity: edge.node.quantity,
-            variantId: edge.node.merchandise.id
-          })) || []
-        });
       } else {
-        console.error('Failed to add to cart:', data.error);
         // The API should handle all cart merging and creation automatically
         throw new Error(data.error || 'Failed to add to cart');
       }
     } catch (error) {
-      console.error('Failed to add to cart:', error);
-      toast.error('Failed to add to cart');
     } finally {
       setIsLoading(false);
     }
@@ -325,12 +293,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
 
-      console.log('Adding products with custom quantities:', productQuantities.length, 'items');
-
       // Validate quantities
       const validQuantities = productQuantities.filter(pq => pq.quantity > 0);
       if (validQuantities.length === 0) {
-        toast.error('Please specify quantities greater than 0');
         return;
       }
 
@@ -368,15 +333,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Update localStorage with the new items
         localStorage.setItem('cartItems', JSON.stringify(updatedItems));
 
-        setIsCartOpen(true);
-        const totalItems = validQuantities.reduce((sum, pq) => sum + pq.quantity, 0);
-        toast.success(`Added ${totalItems} items to cart`);
-      } else {
+          setIsCartOpen(true);
+            const totalItems = validQuantities.reduce((sum, pq) => sum + pq.quantity, 0);
+        } else {
         throw new Error(data.error || 'Failed to add items to cart');
       }
     } catch (error) {
-      console.error('Failed to add products with quantities:', error);
-      toast.error('Failed to add items to cart');
     } finally {
       setIsLoading(false);
     }
@@ -387,7 +349,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
 
-      console.log('Adding multiple items to cart via API:', itemsToAdd.length, 'items');
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -421,14 +382,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         );
         
         setIsCartOpen(true);
-        toast.success(`Added ${itemsToAdd.length} items to cart`);
         return data.cart;
       } else {
         throw new Error(data.error || 'Failed to add items to cart');
       }
     } catch (error) {
-      console.error('Failed to add multiple items to cart:', error);
-      toast.error('Failed to add items to cart');
       throw error;
     } finally {
       setIsLoading(false);
@@ -459,19 +417,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
 
         if (!data.success) {
-          console.error('Failed to clear cart on server:', data.error);
           // Don't show error to user since we've already cleared local state
         }
       } catch (error) {
-        console.error('Error clearing cart on server:', error);
         // Don't show error to user since we've already cleared local state
       } finally {
         setIsLoading(false);
       }
     }
     
-    // Show success message
-    toast.success('Cart cleared');
   }, [cartId]);
 
   const refreshCart = useCallback(async () => {
@@ -498,7 +452,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setCheckoutUrl(data.cart.checkoutUrl);
       }
     } catch (error) {
-      console.error('Failed to refresh cart:', error);
+      // Don't show error to user since we've already cleared local state
     } finally {
       setIsLoading(false);
     }
@@ -525,8 +479,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // If cart is managed by an API, you would call it here
       // await updateCartInAPI(updatedItems);
     } catch (error) {
-      console.error('Error updating item quantity:', error);
-      toast.error('Failed to update quantity');
     }
   }, [items]);
 
@@ -552,11 +504,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('cartItems', JSON.stringify(currentItems));
         }
         
-        toast.success('Item removed from cart');
       }
     } catch (error) {
-      console.error('Error removing item from cart:', error);
-      toast.error('Failed to remove item from cart');
     } finally {
       setIsLoading(false);
     }

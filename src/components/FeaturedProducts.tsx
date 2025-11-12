@@ -27,23 +27,14 @@ export default function FeaturedProducts() {
 
       try {
         setLoading(true);
-        console.log('Fetching products from Shopify...');
         
-        const shopifyProducts = await fetchProducts(8); // Get 8 featured products
-        
-        console.log('Fetched products:', {
-          count: shopifyProducts.length,
-          firstProduct: shopifyProducts[0]?.title
-        });
+        const shopifyProducts = await fetchProducts(8);
 
         if (!shopifyProducts.length) {
-          console.warn('No products found in Shopify');
           setProducts([]);
           return;
         }
 
-        // Process products to match your Product type
-        // In FeaturedProducts.tsx, update the processedProducts mapping to include all required fields
         const processedProducts = shopifyProducts.map((product: any) => {
           const firstVariant = product.variants?.edges?.[0]?.node;
           const createdAt = product.createdAt || product.publishedAt || new Date().toISOString();
@@ -86,7 +77,6 @@ export default function FeaturedProducts() {
 
         setProducts(availableProducts);
       } catch (error) {
-        console.error('Error loading products:', error);
         setError('Failed to load products. Please try again later.');
       } finally {
         setLoading(false);
