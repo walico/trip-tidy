@@ -177,7 +177,7 @@ export default function CartContent({ cart: initialCart }: CartContentProps) {
                 return (
                   <div key={node.id} className="flex items-stretch py-4 border-b">
                     {/* Image */}
-                    <div className="w-28 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
+                    <div className="w-28 shrink-0 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
                       <Image
                         src={image}
                         alt={product.title}
