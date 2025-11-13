@@ -39,7 +39,7 @@ const slides: Slide[] = [
   },
   {
     id: 3,
-    image: "/images/bg3.jpeg",
+    image: "/images/bg3.jpg",
     title: "Little Touches for a Better Day",
     subtitle: "Simple yet thoughtful products that enhance your daily routine with ease and enjoyment.",
     button1: "Shop Best Sellers",
@@ -114,20 +114,25 @@ export default function Hero() {
         className="h-[70vh] min-h-[600px] w-full relative"
       >
         {slides.map((slide, index) => (
-          <SwiperSlide key={slide.id} className="relative">
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute inset-0">
+          <SwiperSlide key={slide.id} className="relative w-full h-full">
+            <div className="absolute inset-0 w-full h-full overflow-hidden">
+              <div className="absolute inset-0 w-full h-full">
                 <Image
                   src={slide.image}
                   alt=""
                   fill
                   priority
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+                  className="object-cover w-full h-full"
+                  sizes="100vw"
                   quality={90}
+                  style={{
+                    objectPosition: 'center center',
+                    width: '100%',
+                    height: '100%',
+                  }}
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/30 to-transparent" />
-                <div className="absolute inset-0 bg-black/30 mix-blend-multiply" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/10 to-transparent" />
+                <div className="absolute inset-0 bg-black/10 mix-blend-multiply" />
               </div>
             </div>
             
